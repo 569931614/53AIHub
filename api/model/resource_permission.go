@@ -6,6 +6,7 @@ const (
 	ResourceTypeUser       = "user"       // User resource type
 	ResourceTypeDepartment = "department" // Department resource type
 	ResourceTypePrompt     = "prompt"     // Prompt resource type
+	ResourceTypeAILink     = "ai_link"
 )
 
 // Permission defines constants for permission types

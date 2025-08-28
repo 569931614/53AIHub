@@ -20,7 +20,7 @@ import (
 	"github.com/53AI/53AIHub/middleware"
 	"github.com/53AI/53AIHub/model"
 	"github.com/53AI/53AIHub/service"
-	"github.com/53AI/53AIHub/service/hub_adaptor/ai53"
+	adaptor53AI "github.com/53AI/53AIHub/service/hub_adaptor/53AI"
 	"github.com/53AI/53AIHub/service/hub_adaptor/coze"
 	"github.com/53AI/53AIHub/service/hub_adaptor/custom"
 	"github.com/53AI/53AIHub/service/hub_adaptor/dify"
@@ -308,44 +308,11 @@ func processChatRequest(c *gin.Context, chatRequest *ChatRequest, agent *model.A
 
 	var lastFailedChannelId int64
 	for i := retryTimes; i > 0; i-- {
-		channel, err := model.GetRandomChannel(agent.Eid, agent.ChannelType, requestModel)
+		// 使用新的服务函数获取渠道并检查/刷新token
+		channel, err := service.GetChannelWithTokenRefresh(ctx, agent.Eid, agent.ChannelType, requestModel, lastFailedChannelId)
 		if err != nil {
+			logger.Errorf(ctx, "获取渠道失败: %s", err.Error())
 			continue
-		}
-		if channel.ChannelID == lastFailedChannelId {
-			continue
-		}
-
-		isRefreshToken := false
-		if channel.ProviderID != 0 {
-			provider, err := model.GetProviderByID(channel.ProviderID, channel.Eid)
-			if err != nil {
-				logger.Errorf(ctx, "refresh token failed: %s", err.Error())
-				continue
-			}
-			checkProviderType := int(provider.ProviderType)
-
-			switch checkProviderType {
-			case model.ProviderTypeCozeCn, model.ProviderTypeCozeCom:
-				ser := service.CozeService{
-					Provider: *provider,
-				}
-				isRefreshToken, err = ser.CheckAndRefreshToken()
-				if err != nil {
-					logger.Errorf(ctx, "refresh token failed: %s", err.Error())
-					continue
-				}
-			}
-		}
-
-		if isRefreshToken {
-			// update channel key
-			channel, err = model.GetChannelByID(channel.ChannelID)
-			if err != nil {
-				logger.Errorf(ctx, "refresh token failed: %s", err.Error())
-				continue
-			}
-			logger.SysLogf("channel token update success, channel_id=", channel.ChannelID)
 		}
 
 		middleware.SetupContextForSelectedChannel(c, channel, requestModel)
@@ -797,27 +764,29 @@ func executeWorkflow(c *gin.Context, workflowRequest *WorkflowRunRequest, agent 
 		workflowRequest.Model, workflowRequest.ConversationID, workflowRequest.Parameters)
 
 	modelName := agent.Model
-	// 获取渠道
+	// 获取渠道并检查/刷新token
 	logger.SysLogf("工作流执行 - 开始获取渠道，Eid: %d, ChannelType: %d, Model: %s",
 		agent.Eid, agent.ChannelType, modelName)
 
-	channel, err := model.GetRandomChannel(agent.Eid, agent.ChannelType, modelName)
-	if channel == nil && agent.ChannelType == channeltype.Coze {
-		// 暂时只做了 Coze Cn 渠道的处理
-		channel, err = model.GetFirstChannelByEidAndProviderType(agent.Eid, channeltype.Coze)
-		if err != nil || channel == nil {
-			return nil, fmt.Errorf("provider channel error")
-		}
-		channel.Models = channel.GetAddModelString(modelName)
-		err := model.DB.Updates(channel).Error
-		if err != nil {
-			return nil, fmt.Errorf("update channel error")
-		}
-	}
-
+	// 使用新的服务函数获取渠道并检查/刷新token
+	ctx := c.Request.Context()
+	channel, err := service.GetChannelWithTokenRefresh(ctx, agent.Eid, agent.ChannelType, modelName, 0)
 	if err != nil {
-		return nil, fmt.Errorf("获取渠道失败，Eid: %d, ChannelType: %d, Model: %s, Error: %v",
-			agent.Eid, agent.ChannelType, modelName, err)
+		// 如果是Coze渠道，尝试使用备用方法获取渠道
+		if agent.ChannelType == channeltype.Coze {
+			channel, err = model.GetFirstChannelByEidAndProviderType(agent.Eid, channeltype.Coze)
+			if err != nil || channel == nil {
+				return nil, fmt.Errorf("provider channel error")
+			}
+			channel.Models = channel.GetAddModelString(modelName)
+			err := model.DB.Updates(channel).Error
+			if err != nil {
+				return nil, fmt.Errorf("update channel error")
+			}
+		} else {
+			return nil, fmt.Errorf("获取渠道失败，Eid: %d, ChannelType: %d, Model: %s, Error: %v",
+				agent.Eid, agent.ChannelType, modelName, err)
+		}
 	}
 
 	logger.SysLogf("工作流执行 - 成功获取渠道，ChannelID: %d, BaseURL: %s",
@@ -833,7 +802,7 @@ func executeWorkflow(c *gin.Context, workflowRequest *WorkflowRunRequest, agent 
 // executeWorkflowDirect 直接执行工作流，简化参数传递
 func executeWorkflowDirect(c *gin.Context, workflowRequest *WorkflowRunRequest, agent *model.Agent, channel *model.Channel, modelName string) (*custom.WorkflowResponseData, error) {
 	// 根据渠道类型选择对应的工作流适配器
-	if channel.Type == channeltype.Coze {
+	if channel.Type == channeltype.Coze || channel.Type == model.ChannelApiTypeCozeStudio {
 		return executeCozeWorkflow(c, workflowRequest, agent, channel, modelName)
 	}
 
@@ -1196,7 +1165,7 @@ func executeAI53Workflow(c *gin.Context, workflowRequest *WorkflowRunRequest, ag
 		meta.OriginModelName, meta.ActualModelName)
 
 	// 创建工作流适配器
-	workflowAdaptor := &ai53.AI53WorkflowAdaptor{}
+	workflowAdaptor := &adaptor53AI.AI53WorkflowAdaptor{}
 	workflowAdaptor.Init(meta)
 
 	// 设置自定义配置

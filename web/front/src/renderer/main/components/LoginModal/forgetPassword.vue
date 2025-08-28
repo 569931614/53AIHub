@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-2">
+  <div v-if="!isOpLocalEnv" class="mb-2">
     <h3>{{ $t('form.reset_password_method') }}</h3>
     <el-radio-group v-model="verify_way" @change="handleVerifyWayChange">
       <el-radio value="email_verify" size="large">{{ $t('form.email_verify') }}</el-radio>
@@ -77,7 +77,7 @@
           :placeholder="$t('form.input_placeholder') + $t('form.verify_code')"
         ></el-input>
         <el-button
-          v-if="verify_way === 'email'"
+          v-if="verify_way === 'email_verify'"
           v-debounce
           :disabled="isRegister || isSending"
           class="!bg-[#f5f5f5] border-0 h-[44px] w-29 no-left-radius"
@@ -138,6 +138,7 @@
 import { ref, reactive, computed, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
+import useEnv from '@/hooks/useEnv'
 import commonApi from '@/api/modules/common'
 import userApi from '@/api/modules/user'
 
@@ -162,6 +163,8 @@ const form = reactive({
 })
 
 const verify_way = ref('email_verify')
+
+const { isOpLocalEnv } = useEnv()
 
 const isSending = ref(true)
 

@@ -181,4 +181,8 @@ defineExpose({
 ::v-deep(.el-select__selected-item:nth-child(1)) .el-tag {
   display: none !important;
 }
+
+::v-deep(.el-select__placeholder) {
+  color: black !important;
+}
 </style>

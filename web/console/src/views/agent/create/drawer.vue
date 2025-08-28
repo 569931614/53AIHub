@@ -42,7 +42,7 @@ interface OpenParams {
   cache?: boolean
 }
 
-const emits = defineEmits(['success'])
+const emits = defineEmits(['success', 'cancel'])
 const agentFormStore = useAgentFormStore()
 
 const agentFormRef = ref()
@@ -103,6 +103,7 @@ async function open({ agent_type, data = {}, agent_id, group_id = 0, cache = fal
 
 const handleClose = () => {
   visible.value = false
+  emits('cancel')
 }
 
 const handleSave = async () => {

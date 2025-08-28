@@ -29,11 +29,7 @@
           v-html="
             `
               <span style='font-size: 15px;'>“</span>
-              ${
-                title === $t('version.scan_consult')
-                  ? $t('service.desc_3') + $t('version.upgrade_renew')
-                  : $t('service.desc_1') + title
-              }
+              ${$t('service.desc_3') + $t('version.upgrade_renew')}
               <span style='font-size: 15px;'>”</span>
             `
           "

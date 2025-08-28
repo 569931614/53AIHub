@@ -28,7 +28,7 @@
             style="--el-tabs-header-height: 36px"
             @tab-click="handleTabChange"
           >
-            <el-tab-pane v-for="item in categorys" :key="item.group_name" :label="item.group_name" :name="item.group_id" />
+            <el-tab-pane v-for="item in categorys" :key="item.group_id" :label="item.group_name" :name="item.group_id" />
           </el-tabs>
           <div>
             <SearchInput v-model="state.keyword" class="hidden md:flex" :placeholder="$t('action.search') + $t('module.prompt')" />

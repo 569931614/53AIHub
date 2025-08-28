@@ -107,7 +107,7 @@ export default defineConfig(env => {
       allowedHosts: ['hubtest.53ai.com', 'hub.53ai.com', 'kmtest.53ai.com', 'km.53ai.com'],
     },
     build: {
-      outDir: viteEnv.VITE_PLATFORM === 'web' ? 'dist' : `../../api/static/console`,
+      outDir: 'dist',
       reportCompressedSize: false,
       sourcemap: false,
       commonjsOptions: {

@@ -10,7 +10,6 @@ require (
 	github.com/go-pay/xlog v0.0.3
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/pkoukk/tiktoken-go v0.1.7
-	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/swag v1.16.4
 	gorm.io/gorm v1.25.10
 )
@@ -32,7 +31,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.8.3 // indirect
 	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -67,7 +65,6 @@ require (
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.49.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect

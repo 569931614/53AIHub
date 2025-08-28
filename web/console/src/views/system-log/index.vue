@@ -2,39 +2,37 @@
   <Layout class="px-15 py-8">
     <Header :title="$t('module.system_log')" />
     <div class="flex-1 flex flex-col bg-white p-6 mt-3 box-border max-h-[calc(100vh-100px)] overflow-auto">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="flex-none">
-            <FilterDateRange
-              v-model="selectDate"
-              size="large"
-              :value-format="date => new Date(date).getTime()"
-              @change="onRefresh"
-            />
-          </div>
-          <ElSelect
-            v-model="filterForm.action"
+      <div class="flex items-center gap-3">
+        <div class="flex-none">
+          <FilterDateRange
+            v-model="selectDate"
             size="large"
-            class="flex-none max-w-[180px]"
-            clearable
+            :value-format="(date: any) => new Date(date).getTime()"
             @change="onRefresh"
-          >
-            <template #prefix> {{ $t('system_log.log_action') }}: </template>
-            <ElOption v-for="item in actions" :key="item.value" :label="item.text" :value="item.value" />
-          </ElSelect>
-          <ElSelect
-            v-model="filterForm.module"
-            size="large"
-            class="flex-none max-w-[180px]"
-            clearable
-            @change="onRefresh"
-          >
-            <template #prefix> {{ $t('system_log.log_module') }}: </template>
-            <ElOption v-for="item in modules" :key="item.value" :label="item.text" :value="item.value" />
-          </ElSelect>
-
-          <FilterUser v-model="userList" class="flex-none max-w-[180px]" type="user" @change="onRefresh" />
+          />
         </div>
+        <ElSelect
+          v-model="filterForm.action"
+          size="large"
+          class="flex-none max-w-[180px]"
+          clearable
+          @change="onRefresh"
+        >
+          <template #prefix> {{ $t('system_log.log_action') }}: </template>
+          <ElOption v-for="item in actions" :key="item.value" :label="item.text" :value="item.value" />
+        </ElSelect>
+        <ElSelect
+          v-model="filterForm.module"
+          size="large"
+          class="flex-none max-w-[180px]"
+          clearable
+          @change="onRefresh"
+        >
+          <template #prefix> {{ $t('system_log.log_module') }}: </template>
+          <ElOption v-for="item in modules" :key="item.value" :label="item.text" :value="item.value" />
+        </ElSelect>
+
+        <FilterUser v-model="userList" class="flex-none max-w-[180px]" type="user" @change="onRefresh" />
       </div>
 
       <div v-loading="tableLoading" class="flex-1 overflow-y-auto bg-white rounded-lg mt-4">
@@ -89,36 +87,19 @@ import { onMounted, reactive, ref } from 'vue'
 import FilterDateRange from '@/components/Filter/date-range.vue'
 import FilterUser from '@/components/Filter/user.vue'
 
-import {
-  systemLogApi,
-  type SystemLogItem,
-  type ActionItem,
-  type ModuleItem,
-  type SystemLogListRequest,
-} from '@/api/modules/system-log'
-import { getSimpleDateFormatString } from '@/utils/moment'
+import { systemLogApi } from '@/api/modules/system-log/index'
+import { transformSystemLogList, getDefaultSystemLogRequest } from '@/api/modules/system-log/transform'
+import type { SystemLogListRequest, ActionItem, ModuleItem, SystemLogDisplayItem } from '@/api/modules/system-log/types'
 
 type UserItem = {
   user_id: number
   nickname: string
 }
 
-type SystemLogDisplayItem = Omit<SystemLogItem, 'action_time'> & {
-  action_time: string
-}
-
 // 响应式数据
 const userList = ref<UserItem[]>([])
 const selectDate = ref([])
-const filterForm = reactive<SystemLogListRequest>({
-  action: null,
-  module: null,
-  start_time: null,
-  end_time: null,
-  offset: 0,
-  limit: 10,
-  user_id: null,
-})
+const filterForm = reactive<SystemLogListRequest>(getDefaultSystemLogRequest())
 
 const actions = ref<ActionItem[]>([])
 const modules = ref<ModuleItem[]>([])
@@ -137,13 +118,7 @@ const loadList = async (): Promise<void> => {
     }
 
     const data = await systemLogApi.list(params)
-    tableData.value = (data.system_logs || []).map(item => ({
-      ...item,
-      action_time: getSimpleDateFormatString({
-        date: item.action_time,
-        format: 'YYYY-MM-DD hh:mm',
-      }),
-    }))
+    tableData.value = transformSystemLogList(data.system_logs || [])
     tableTotal.value = data.count || 0
   } catch (error) {
     console.error('加载系统日志失败:', error)
@@ -186,6 +161,7 @@ const handleCurrentChange = (page: number): void => {
   filterForm.offset = (page - 1) * filterForm.limit
   loadList()
 }
+
 // 生命周期
 onMounted(async () => {
   tableLoading.value = true

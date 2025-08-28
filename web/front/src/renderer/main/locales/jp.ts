@@ -104,7 +104,9 @@ export default {
     approve_success: 'いいねしました',
     approve_cancel: 'いいねを取り消しました',
     register_success: '登録成功',
-    update_success: '更新成功'
+    update_success: '更新成功',
+    copy_success: ' コピー成功 ',
+    copy_error: ' コピー失敗'
   },
 
   // アクションボタン
@@ -192,6 +194,7 @@ export default {
     email_verify: 'メール認証',
     mobile_verify: '電話認証',
     account: 'アカウント',
+    remark: ' 備考 ',
     account_alias: '電話番号',
     password: 'パスワード',
     email: 'メールアドレス',
@@ -351,7 +354,11 @@ export default {
     title: 'AIの世界を拡大しよう',
     input_placeholder: 'AIの世界を拡大しよう',
     max_agent_count: '最大で{count}つのモデルを選択できます',
-    search_placeholder: 'ウェブサイトを検索'
+    search_placeholder: 'ウェブサイトを検索',
+    direct_access: ' 直接アクセス ',
+    click_access: ' クリックでアクセス ',
+    account_access: ' 共有アカウント ',
+    account_text: ' 以下は共有のアカウントとパスワードです。本人専用です'
   },
 
   // スペース関連

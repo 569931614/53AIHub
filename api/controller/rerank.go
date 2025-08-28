@@ -1,11 +1,9 @@
 package controller
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"strings"
@@ -16,6 +14,7 @@ import (
 	"github.com/53AI/53AIHub/config"
 	"github.com/53AI/53AIHub/middleware"
 	"github.com/53AI/53AIHub/model"
+	"github.com/53AI/53AIHub/service"
 	"github.com/gin-gonic/gin"
 	"github.com/songquanpeng/one-api/relay/adaptor/openai"
 	billing_ratio "github.com/songquanpeng/one-api/relay/billing/ratio"
@@ -296,123 +295,52 @@ func executeRerankRequest(c *gin.Context, req *RerankRequest, channel *model.Cha
 
 // executeAliRerankRequest 执行阿里云百炼 rerank 请求
 func executeAliRerankRequest(c *gin.Context, req *RerankRequest, meta *meta.Meta) (*RerankResponse, *relay_model.Usage, error) {
-	// 使用百炼适配器处理请求
-	return callBailianRerankAPIViaAdaptor(c, req, meta)
-}
+	// 创建新的 service 实例
+	rerankService := &service.BailianRerankService{}
 
-// callBailianRerankAPIViaAdaptor 通过适配器调用百炼 rerank API
-func callBailianRerankAPIViaAdaptor(c *gin.Context, req *RerankRequest, meta *meta.Meta) (*RerankResponse, *relay_model.Usage, error) {
-	// 导入百炼适配器包
-	// 由于编辑器自动移除导入，我们需要在函数内部处理
-
-	// 创建百炼适配器请求格式
-	bailianReq := struct {
-		Model      string   `json:"model"`
-		Query      string   `json:"query"`
-		Documents  []string `json:"documents"`
-		TopN       *int     `json:"top_n,omitempty"`
-		ReturnDocs *bool    `json:"return_documents,omitempty"`
-	}{
-		Model:      req.Model,
-		Query:      req.Query,
-		Documents:  req.Documents,
-		TopN:       req.TopN,
-		ReturnDocs: req.ReturnDocuments,
+	// 将 controller 中的 RerankRequest 转换为 service 中的 RerankRequest
+	serviceReq := &service.RerankRequest{
+		Model:           req.Model,
+		Query:           req.Query,
+		Documents:       req.Documents,
+		TopN:            req.TopN,
+		ReturnDocuments: req.ReturnDocuments,
 	}
 
-	// 构建请求体
-	requestBody, err := json.Marshal(map[string]interface{}{
-		"model": bailianReq.Model,
-		"input": map[string]interface{}{
-			"query":     bailianReq.Query,
-			"documents": bailianReq.Documents,
+	// 调用 service 的方法
+	serviceResp, usage, err := rerankService.CallBailianRerankAPI(c.Request.Context(), serviceReq, meta)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// 将 service 中的 RerankResponse 转换为 controller 中的 RerankResponse
+	controllerResp := &RerankResponse{
+		Object: serviceResp.Object,
+		Model:  serviceResp.Model,
+		Usage: RerankUsage{
+			TotalTokens: serviceResp.Usage.TotalTokens,
 		},
-		"parameters": func() map[string]interface{} {
-			params := make(map[string]interface{})
-			if bailianReq.TopN != nil {
-				params["top_n"] = *bailianReq.TopN
+	}
+
+	// 转换 Data 字段
+	controllerResp.Data = make([]RerankResult, len(serviceResp.Data))
+	for i, serviceResult := range serviceResp.Data {
+		controllerResult := RerankResult{
+			Object:         serviceResult.Object,
+			Index:          serviceResult.Index,
+			RelevanceScore: serviceResult.RelevanceScore,
+		}
+
+		if serviceResult.Document != nil {
+			controllerResult.Document = &RerankDocument{
+				Text: serviceResult.Document.Text,
 			}
-			if bailianReq.ReturnDocs != nil {
-				params["return_documents"] = *bailianReq.ReturnDocs
-			} else {
-				params["return_documents"] = false
-			}
-			return params
-		}(),
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("序列化请求失败: %v", err)
+		}
+
+		controllerResp.Data[i] = controllerResult
 	}
 
-	// 构建正确的 rerank API URL
-	baseUrl := meta.BaseURL
-	if baseUrl == "" {
-		baseUrl = "https://dashscope.aliyuncs.com"
-	}
-	url := fmt.Sprintf("%s/api/v1/services/rerank/text-rerank/text-rerank", baseUrl)
-
-	// 详细的请求日志
-	logger.SysLogf("🚀 百炼Rerank API请求开始")
-	logger.SysLogf("┌─────────────────────────────────────────────────────────────")
-	logger.SysLogf("│ 📡 请求URL: %s", url)
-	logger.SysLogf("│ 🔑 API Key: %s", maskAPIKey(meta.APIKey))
-	logger.SysLogf("│ 🤖 模型名称: %s", req.Model)
-	logger.SysLogf("│ 📝 请求方法: POST")
-	logger.SysLogf("│ 📊 查询长度: %d 字符", len(req.Query))
-	logger.SysLogf("│ 📚 文档数量: %d", len(req.Documents))
-	if req.TopN != nil {
-		logger.SysLogf("│ 🔢 TopN: %d", *req.TopN)
-	}
-	if req.ReturnDocuments != nil {
-		logger.SysLogf("│ 📄 返回文档: %v", *req.ReturnDocuments)
-	}
-	logger.SysLogf("└─────────────────────────────────────────────────────────────")
-
-	// 创建HTTP请求
-	httpReq, err := http.NewRequestWithContext(c.Request.Context(), "POST", url, bytes.NewReader(requestBody))
-	if err != nil {
-		logger.SysErrorf("❌ 创建HTTP请求失败: %v", err)
-		return nil, nil, fmt.Errorf("创建请求失败: %v", err)
-	}
-
-	// 设置请求头
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+meta.APIKey)
-
-	// 发送请求
-	client := &http.Client{Timeout: 60 * time.Second}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		logger.SysErrorf("❌ 百炼Rerank请求失败: %v", err)
-		return nil, nil, fmt.Errorf("发送请求失败: %v", err)
-	}
-	defer resp.Body.Close()
-
-	logger.SysLogf("✅ 百炼Rerank请求完成 - 状态码: %d", resp.StatusCode)
-
-	// 检查响应状态
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		logger.SysErrorf("❌ 百炼Rerank请求失败 - 状态码: %d, 响应: %s", resp.StatusCode, string(body))
-		return nil, nil, fmt.Errorf("请求失败，状态码: %d", resp.StatusCode)
-	}
-
-	// 读取响应
-	responseBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logger.SysErrorf("❌ 读取响应失败: %v", err)
-		return nil, nil, fmt.Errorf("读取响应失败: %v", err)
-	}
-
-	// 解析百炼响应
-	var bailianResponse map[string]interface{}
-	if err := json.Unmarshal(responseBody, &bailianResponse); err != nil {
-		logger.SysErrorf("❌ 解析响应失败: %v", err)
-		return nil, nil, fmt.Errorf("解析响应失败: %v", err)
-	}
-
-	// 转换为标准格式
-	return convertBailianRerankResponse(bailianResponse, req)
+	return controllerResp, usage, nil
 }
 
 // convertBailianRerankResponse 转换百炼 rerank 响应为标准格式

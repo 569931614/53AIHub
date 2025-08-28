@@ -21,6 +21,7 @@ import { shouldShowReminder, recordReminderShown, STORAGE_KEYS } from '@/utils/s
 import { STORAGE_CONFIG } from '@/constants/storage'
 
 import { EVENT_NAMES } from '@/constants/events'
+import subscriptionApi from './api/modules/subscription'
 
 const loginModalRef = ref<InstanceType<typeof LoginModal>>()
 const expireModalRef = ref<InstanceType<typeof ExpireModal>>()
@@ -124,6 +125,32 @@ onMounted(() => {
         showCancelButton: false
       })
     }
+  }
+  // 双层判断，防止支付宝支付成功后，页面刷新，导致搜索参数丢失
+  if (search.get('method') === 'alipay.trade.page.pay.return' && search.get('out_trade_no')) {
+    // 支付宝支付成功
+    const order_id = search.get('out_trade_no')
+    subscriptionApi.getOrderStatus({ order_id })
+    // 删除支付宝支付成功后的搜索参数
+    const delete_keys = [
+      'charset',
+      'method',
+      'app_id',
+      'utf-8',
+      'out_trade_no',
+      'sign',
+      'total_amount',
+      'trade_no',
+      'auth_app_id',
+      'version',
+      'sign_type',
+      'seller_id',
+      'timestamp'
+    ]
+    delete_keys.forEach((key) => {
+      search.delete(key)
+    })
+    window.location.search = search.toString()
   }
 
   settingApi.group

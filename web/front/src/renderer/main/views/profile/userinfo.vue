@@ -55,7 +55,14 @@
     <div class="p-4 box-border flex items-center gap-2.5 account-item">
       <img class="size-6" :src="$getPublicPath('/images/profile/password.png')" alt="" />
       <div class="flex-1 w-0 text-base text-primary">{{ $t('profile.login_password') }}</div>
-      <el-button type="info" class="!border-none !text-[#586D9A] !bg-transparent" link plain @click="reset_Password_Visible = true">
+      <el-button
+        v-if="!isOpLocalEnv || (isOpLocalEnv && openSMTP)"
+        type="info"
+        class="!border-none !text-[#586D9A] !bg-transparent"
+        link
+        plain
+        @click="reset_Password_Visible = true"
+      >
         {{ $t('form.change') }}
       </el-button>
     </div>
@@ -65,7 +72,14 @@
       <div class="flex-1 w-0 text-sm text-placeholder invisible md:visible">
         {{ userStore.info.email || $t('profile.unbind_account') }}
       </div>
-      <el-button type="info" class="border-none !text-[#586D9A]" link plain @click="emailVisible = true">
+      <el-button
+        v-if="!isOpLocalEnv || (isOpLocalEnv && openSMTP)"
+        type="info"
+        class="border-none !text-[#586D9A]"
+        link
+        plain
+        @click="emailVisible = true"
+      >
         {{ userStore.info.email ? $t('profile.change') : $t('profile.bind') }}
       </el-button>
     </div>
@@ -249,7 +263,8 @@
 
 <script setup lang="ts">
 import { ArrowRight, Close, WarnTriangleFilled } from '@element-plus/icons-vue'
-import { ref, reactive, nextTick } from 'vue'
+import { ref, reactive, nextTick, onMounted } from 'vue'
+import enterpriseApi from '@/api/modules/enterprise'
 import CropperDialog from '@/components/CropperDialog/index.vue'
 // import Password from './password.vue'
 import Email from '@/components/LoginModal/email.vue'
@@ -275,6 +290,7 @@ const profileVisible = ref(false)
 const emailVisible = ref(false)
 const reset_Password_Visible = ref(false)
 const change_Mobile_Visible = ref(false)
+const openSMTP = ref(false)
 
 const handleClose = () => {
   passwordRef.value?.resetForm?.()
@@ -340,6 +356,15 @@ const handleOauthSuccess = async (data: any) => {
   ElMessage.success(window.$t(userStore.info.openid ? 'profile.change_success' : 'profile.bind_success'))
   bindWechatVisible.value = false
 }
+
+const loadSMTP = async () => {
+  const { data } = await enterpriseApi.getSMTPInfo('smtp')
+  openSMTP.value = data
+}
+
+onMounted(() => {
+  loadSMTP()
+})
 </script>
 
 <style scoped>

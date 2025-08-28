@@ -8,7 +8,7 @@ export const getFormatAiLinkData = (data = {}) => {
 
 export const aiLinkApi = {
   async list({
-    params = {}
+    params = {},
   }: {
     params: {
       group_id?: number
@@ -31,7 +31,10 @@ export const aiLinkApi = {
       description: '',
       group_id: 0,
       sort: 0,
-      ...data
+      user_group_ids: [],
+      subscription_group_ids: [],
+      shared_account: '',
+      ...data,
     }
     const { ai_link_id } = data
     delete data.ai_link_id
@@ -49,7 +52,10 @@ export const aiLinkApi = {
   },
   sort({ items = [] }: { items: { group_id: number; id: number; sort: number }[] }) {
     return service.post('/api/ai_links/batch/sort', { items }).catch(handleError)
-  }
+  },
+  detail(id: number) {
+    return service.get(`api/ai_links/${id}`).catch(handleError)
+  },
 }
 
 export default aiLinkApi

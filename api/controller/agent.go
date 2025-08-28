@@ -292,14 +292,7 @@ func UpdateAgent(c *gin.Context) {
 		return
 	}
 
-	// Delete existing permissions
-	if err = tx.Where("resource_id = ? AND resource_type = ?", agent_id, model.ResourceTypeAgent).Delete(&model.ResourcePermission{}).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
-		return
-	}
-
-	// Get enterprise information
+	// 获取企业信息
 	enterprise, err := model.GetEnterpriseByID(eid)
 	if err != nil {
 		tx.Rollback()
@@ -307,13 +300,13 @@ func UpdateAgent(c *gin.Context) {
 		return
 	}
 
-	// Determine group IDs based on enterprise type
+	// 确定分组ID
 	var allGroupIds []int64
 	groupIDSet := make(map[int64]bool)
 
 	switch enterprise.Type {
 	case model.EnterpriseTypeIndustry:
-		// Take all group IDs
+		// 取所有分组ID
 		if len(agentReq.SubscriptionGroupIds) > 0 {
 			for _, id := range agentReq.SubscriptionGroupIds {
 				groupIDSet[id] = true
@@ -325,14 +318,14 @@ func UpdateAgent(c *gin.Context) {
 			}
 		}
 	case model.EnterpriseTypeIndependent:
-		// Take only SubscriptionGroupIds
+		// 只取订阅分组ID
 		if len(agentReq.SubscriptionGroupIds) > 0 {
 			for _, id := range agentReq.SubscriptionGroupIds {
 				groupIDSet[id] = true
 			}
 		}
 	case model.EnterpriseTypeEnterprise:
-		// Take only UserGroupIds
+		// 只取用户分组ID
 		if len(agentReq.UserGroupIds) > 0 {
 			for _, id := range agentReq.UserGroupIds {
 				groupIDSet[id] = true
@@ -340,51 +333,17 @@ func UpdateAgent(c *gin.Context) {
 		}
 	}
 
-	// Convert to slice
+	// 转换为切片
 	allGroupIds = make([]int64, 0, len(groupIDSet))
 	for id := range groupIDSet {
 		allGroupIds = append(allGroupIds, id)
 	}
 
-	// Filter groups if not industry type
-	if enterprise.Type != model.EnterpriseTypeIndustry && len(allGroupIds) > 0 {
-		// Get all groups
-		var groups []model.Group
-		if err := tx.Where("group_id IN (?)", allGroupIds).Find(&groups).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
-			return
-		}
-
-		// Filter groups
-		filteredGroupIds := make([]int64, 0, len(groups))
-		for _, group := range groups {
-			// Filter logic based on enterprise type
-			if (enterprise.Type == model.EnterpriseTypeIndependent && group.GroupType != model.USER_GROUP_TYPE) ||
-				(enterprise.Type == model.EnterpriseTypeEnterprise && group.GroupType != model.INTERNAL_USER_GROUP_TYPE) {
-				continue
-			}
-			filteredGroupIds = append(filteredGroupIds, group.GroupId)
-		}
-
-		allGroupIds = filteredGroupIds
-	}
-
-	// Add new permissions
-	if len(allGroupIds) > 0 {
-		for _, groupID := range allGroupIds {
-			permission := model.ResourcePermission{
-				GroupID:      groupID,
-				ResourceID:   agent.AgentID,
-				ResourceType: model.ResourceTypeAgent,
-				Permission:   model.PermissionRead,
-			}
-			if err := tx.Create(&permission).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
-				return
-			}
-		}
+	// 使用通用方法更新资源权限（带过滤）
+	if err := service.UpdateAgentResourcePermissions(c, tx, agent.AgentID, agentReq.SubscriptionGroupIds, agentReq.UserGroupIds, enterprise); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+		return
 	}
 
 	// Commit transaction

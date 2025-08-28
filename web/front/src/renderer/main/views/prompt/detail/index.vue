@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="h-full bg-white flex flex-col overflow-y-auto"
-    :class="[useCaseFixed && isUseCase ? 'fixed top-0 left-0 right-0 z-[9999]' : 'relative']"
-  >
+  <div class="bg-white flex flex-col" :class="[useCaseFixed && isUseCase ? 'fixed top-0 left-0 right-0 z-[9999]' : 'relative']">
     <template v-if="!isUseCase">
       <MainHeader v-if="!hideMenuHeader" sticky>
         <template #before_suffix>
@@ -26,8 +23,8 @@
           </ElTooltip>
         </template>
       </MainHeader>
-      <div class="flex gap-8">
-        <section class="w-full min-w-0 max-w-[1280px] py-6 px-3 md:px-8 lg:px-10 mx-auto box-border" :class="mainClass">
+      <div class="flex-1 flex gap-8">
+        <section class="w-full min-w-0 max-w-[1280px] pt-6 px-3 md:px-8 lg:px-10 mx-auto box-border" :class="mainClass">
           <h1 class="text-2xl md:text-3xl font-semibold text-primary w-full flex items-center justify-between md:justify-start">
             <span>
               {{ detailData.name }}
@@ -95,30 +92,31 @@
                   </div>
                 </div>
               </div>
-
-              <template v-if="(detailData.group_ids || []).some((id) => (userStore.info.group_ids || []).includes(id))">
-                <el-divider v-if="detailData.ai_links_data && detailData.ai_links_data.length">
-                  <span class="text-sm text-regular">{{ $t('prompt.let_use_prompt') }}</span>
-                </el-divider>
-                <div v-if="detailData.ai_links_data && detailData.ai_links_data.length" class="flex items-center justify-center gap-4 flex-wrap">
-                  <template v-for="item in detailData.ai_links_data" :key="item.url">
-                    <a
-                      v-copy="detailData.content"
-                      class="w-20 h-16 flex flex-col items-center justify-center gap-2 cursor-pointer"
-                      :href="item.url"
-                      target="_blank"
-                      @click.prevent="handleClick"
-                    >
-                      <div class="size-8 rounded-full border overflow-hidden flex items-center justify-center">
-                        <img :src="item.logo" class="size-6 rounded-full" />
-                      </div>
-                      <p class="text-primary text-sm whitespace-nowrap">{{ item.name }}</p>
-                    </a>
-                  </template>
-                </div>
-              </template>
             </div>
           </section>
+          <div class="sticky bottom-0 bg-white">
+            <template v-if="(detailData.group_ids || []).some((id) => (userStore.info.group_ids || []).includes(id))">
+              <el-divider v-if="detailData.ai_links_data && detailData.ai_links_data.length">
+                <span class="text-sm text-regular">{{ $t('prompt.let_use_prompt') }}</span>
+              </el-divider>
+              <div v-if="detailData.ai_links_data && detailData.ai_links_data.length" class="flex items-center justify-center gap-4 flex-wrap">
+                <template v-for="item in detailData.ai_links_data" :key="item.url">
+                  <a
+                    v-copy="detailData.content"
+                    class="w-20 h-16 flex flex-col items-center justify-center gap-2 cursor-pointer"
+                    :href="item.url"
+                    target="_blank"
+                    @click.prevent="handleClick"
+                  >
+                    <div class="size-8 rounded-full border overflow-hidden flex items-center justify-center">
+                      <img :src="item.logo" class="size-6 rounded-full" />
+                    </div>
+                    <p class="text-primary text-sm whitespace-nowrap">{{ item.name }}</p>
+                  </a>
+                </template>
+              </div>
+            </template>
+          </div>
         </section>
 
         <div v-if="showRecommend" class="flex-none w-2/6 box-border relative flex flex-col gap-4 mt-8">

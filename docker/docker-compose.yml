@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   web:
-    image: 53ai/53ai-hub:0.1.7
+    image: 53ai/53ai-hub:0.1.8
     env_file: .env
     ports:
       - "3000:3000"

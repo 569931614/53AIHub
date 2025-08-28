@@ -13,7 +13,7 @@ export default defineConfig(({ command, mode }) => {
     css: commonCss,
     build: {
       ...commonBuild,
-      outDir: resolve('../../api/static/front')
+      outDir: resolve('dist')
     },
     plugins: commonPlugins,
     define: {

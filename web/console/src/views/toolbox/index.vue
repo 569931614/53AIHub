@@ -116,7 +116,7 @@
 
     <!-- <ToolBox class="mt-4" /> -->
 
-    <CreateDialog ref="createRef" @success="refresh" />
+    <createDrawer ref="drawerRef" @success="refresh" />
     <StoreDialog ref="storeRef" @add="onCreate" @success="refresh" />
   </Layout>
 </template>
@@ -124,16 +124,16 @@
 <script setup lang="ts">
 import { Delete, Search } from '@element-plus/icons-vue'
 import { computed, onMounted, provide, reactive, ref } from 'vue'
-import CreateDialog from './components/create-dialog.vue'
 import StoreDialog from './components/store-dialog.vue'
+import createDrawer from './components/create-drawer.vue'
 
 import { aiLinkApi } from '@/api/modules/ai-link'
 
 import { GROUP_TYPE } from '@/constants/group'
 
 const groupTabsRef = ref()
-const createRef = ref()
 const storeRef = ref()
+const drawerRef = ref()
 const filterForm = reactive({
   group_id: [],
   keyword: '',
@@ -166,7 +166,7 @@ const onCreate = ({ data = {} } = {}) => {
   if (filterForm.group_id.length > 0 && filterForm.group_id[0] !== '-1') {
     data.group_id = filterForm.group_id[0]
   }
-  createRef.value.open({ data })
+  drawerRef.value.open({ data })
 }
 const groupOptions = ref([])
 provide('groupOptions', groupOptions)
@@ -181,11 +181,6 @@ const onGetOptions = ({ options = [] } = {}) => {
     })),
   ]
   setAiLinkToGroup()
-
-  // 初始化选中全部
-  if (filterForm.group_id.length === 0) {
-    filterForm.group_id = options.map(item => item.group_id)
-  }
 }
 const setAiLinkToGroup = () => {
   groupOptions.value.forEach(item => {

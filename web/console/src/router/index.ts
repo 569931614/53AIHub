@@ -96,7 +96,12 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/platform',
         name: 'Platform',
+        // #ifdef KM
+        component: () => import('@/views/platform/km.vue'),
+        // #endif
+        // #ifndef KM
         component: () => import('@/views/platform/index.vue'),
+        // #endif
       },
       {
         path: '/navigation',
@@ -122,6 +127,11 @@ const routes: RouteRecordRaw[] = [
         path: '/statistics',
         name: 'Statistics',
         component: () => import('@/views/statistics/index.vue'),
+      },
+      {
+        path: '/SMTP',
+        name: 'SMTP',
+        component: () => import('@/views/smtp-setting/index.vue'),
       },
       {
         path: '/template-style',

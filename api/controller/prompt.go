@@ -10,6 +10,7 @@ import (
 	"github.com/53AI/53AIHub/common"
 	"github.com/53AI/53AIHub/config"
 	"github.com/53AI/53AIHub/model"
+	"github.com/53AI/53AIHub/service"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -227,33 +228,11 @@ func CreatePrompt(c *gin.Context) {
 		allGroupIds = append(allGroupIds, promptReq.UserGroupIds...)
 	}
 
-	// 创建资源权限
-	if len(allGroupIds) > 0 {
-		// 使用map去重
-		groupIDMap := make(map[int64]bool)
-		uniqueGroupIDs := make([]int64, 0)
-
-		for _, groupID := range allGroupIds {
-			if !groupIDMap[groupID] && groupID > 0 {
-				groupIDMap[groupID] = true
-				uniqueGroupIDs = append(uniqueGroupIDs, groupID)
-			}
-		}
-
-		for _, groupID := range uniqueGroupIDs {
-			permission := model.ResourcePermission{
-				GroupID:      groupID,
-				ResourceID:   prompt.PromptID,
-				ResourceType: model.ResourceTypePrompt,
-				Permission:   model.PermissionRead,
-			}
-
-			if err := tx.Create(&permission).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
-				return
-			}
-		}
+	// 使用通用方法更新资源权限
+	if err := service.UpdateResourcePermissions(c, tx, int64(prompt.PromptID), model.ResourceTypePrompt, allGroupIds); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+		return
 	}
 
 	// 提交事务
@@ -418,13 +397,6 @@ func UpdatePrompt(c *gin.Context) {
 		return
 	}
 
-	// 删除现有权限
-	if err := tx.Where("resource_id = ? AND resource_type = ?", promptID, model.ResourceTypePrompt).Delete(&model.ResourcePermission{}).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
-		return
-	}
-
 	// 添加分组关联
 	allGroupIds := make([]int64, 0)
 
@@ -443,33 +415,11 @@ func UpdatePrompt(c *gin.Context) {
 		allGroupIds = append(allGroupIds, promptReq.UserGroupIds...)
 	}
 
-	// 创建资源权限
-	if len(allGroupIds) > 0 {
-		// 使用map去重
-		groupIDMap := make(map[int64]bool)
-		uniqueGroupIDs := make([]int64, 0)
-
-		for _, groupID := range allGroupIds {
-			if !groupIDMap[groupID] && groupID > 0 {
-				groupIDMap[groupID] = true
-				uniqueGroupIDs = append(uniqueGroupIDs, groupID)
-			}
-		}
-
-		for _, groupID := range uniqueGroupIDs {
-			permission := model.ResourcePermission{
-				GroupID:      groupID,
-				ResourceID:   prompt.PromptID,
-				ResourceType: model.ResourceTypePrompt,
-				Permission:   model.PermissionRead,
-			}
-
-			if err := tx.Create(&permission).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
-				return
-			}
-		}
+	// 使用通用方法更新资源权限
+	if err := service.UpdateResourcePermissions(c, tx, int64(prompt.PromptID), model.ResourceTypePrompt, allGroupIds); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+		return
 	}
 
 	// 提交事务

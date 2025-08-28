@@ -1,14 +1,35 @@
 <template>
-  <el-dialog v-model="visible" class="el-dialog--footer-center" :title="originData.id ? $t('action.edit') : $t('action.create')" destroy-on-close :close-on-click-modal="false" width="500px">
+  <el-dialog
+    v-model="visible"
+    class="el-dialog--footer-center"
+    :title="originData.id ? $t('action.edit') : $t('action.create')"
+    destroy-on-close
+    :close-on-click-modal="false"
+    width="500px"
+  >
     <el-form ref="formRef" :model="formData" label-width="108px" label-position="left">
       <el-form-item :label="$t('space.icon')" prop="icon" :rules="rules.icon" required>
         <UploadImage v-model="formData.icon" class="w-12 h-12" />
       </el-form-item>
       <el-form-item :label="$t('space.name')" prop="name" :rules="rules.name" required>
-        <el-input v-model="formData.name" size="large" :placeholder="$t('space.name_placeholder')" maxlength="20" show-word-limit />
+        <el-input
+          v-model="formData.name"
+          size="large"
+          :placeholder="$t('space.name_placeholder')"
+          maxlength="20"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item :label="$t('space.description')" prop="description">
-        <el-input v-model="formData.description" type="textarea" resize="none" :rows="5"  :placeholder="$t('space.description_placeholder')" maxlength="200" show-word-limit />
+        <el-input
+          v-model="formData.description"
+          type="textarea"
+          resize="none"
+          :rows="5"
+          :placeholder="$t('space.description_placeholder')"
+          maxlength="200"
+          show-word-limit
+        />
       </el-form-item>
     </el-form>
 
@@ -24,12 +45,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import UploadImage from '@/components/Upload/image.vue';
+import { ref, reactive } from 'vue'
+import UploadImage from '@/components/Upload/image.vue'
 
-import { spacesApi, SpaceItem, SpaceCreateRequest } from '@/api/modules/spaces';
+import { spacesApi } from '@/api/modules/spaces/index'
+import type { SpaceItem, SpaceCreateRequest } from '@/api/modules/spaces/types'
 
-import { generateInputRules } from '@/utils/form-rule';
+import { generateInputRules } from '@/utils/form-rule'
 
 const emit = defineEmits(['refresh'])
 
@@ -74,7 +96,6 @@ const handleSave = async () => {
   emit('refresh')
   close()
 }
-
 
 defineExpose({
   open,

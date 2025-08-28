@@ -30,6 +30,10 @@ func (a *N8nWorkflowAdaptor) Init(meta *meta.Meta) {
 func (a *N8nWorkflowAdaptor) GetRequestURL(meta *meta.Meta) (string, error) {
 	baseURL := strings.TrimSuffix(meta.BaseURL, "/")
 
+	if strings.Contains(baseURL, "/webhook-test/") || strings.Contains(baseURL, "/webhook/") {
+		return baseURL, nil
+	}
+
 	// 从模型名称中提取工作流ID
 	workflowID := extractWorkflowID(meta.ActualModelName)
 	if workflowID == "" {

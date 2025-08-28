@@ -244,7 +244,7 @@ func GetDefaultGroupData() []GroupInfo {
 			{Name: "文心一言", Logo: "https://hubapi.53ai.com/api/preview/eee853619f4fcbd7f15622198101630c.png", URL: "https://yiyan.baidu.com/", Description: "文心一言是百度研发的知识增强大语言模型，能够与人对话互动，回答问题，协助创作", Sort: 0},
 			{Name: "腾讯元宝", Logo: "https://hubapi.53ai.com/api/preview/433b8834406d66420558b6f093f0fed1.png", URL: "https://yuanbao.tencent.com", Description: "腾讯元宝是一款基于腾讯混元大模型的AI产品，为用户提供多元化的AI能力", Sort: 0},
 			{Name: "Kimi", Logo: "https://hubapi.53ai.com/api/preview/3df2f0d2e59edf80f4a1c93ce2d22035.png", URL: "https://www.kimi.com/", Description: "Kimi 是一款AI智能助手，由 Moonshot 自研的大语言模型驱动，支持在线搜索、深度思考、多模态推理和超长文本对话", Sort: 0},
-			{Name: "DeekSeek", Logo: "https://hubapi.53ai.com/api/preview/30a0967845beb701a184764e62a60e7f.png", URL: "https://chat.deepseek.com/", Description: "深度求索人工智能AI对话大模型，带你探索未至之境", Sort: 0},
+			{Name: "DeepSeek", Logo: "https://hubapi.53ai.com/api/preview/30a0967845beb701a184764e62a60e7f.png", URL: "https://chat.deepseek.com/", Description: "深度求索人工智能AI对话大模型，带你探索未至之境", Sort: 0},
 		}},
 		{GroupName: "办公提效", GroupType: 2, Sort: 4, Links: []AILinkInfo{
 			{Name: "秒出PPT", Logo: "https://hubapi.53ai.com/api/preview/e3d748b2fc4a7f108090552e0b0dfc18.png", URL: "https://10sppt.com/", Description: "10S快速生成PPT", Sort: 0},

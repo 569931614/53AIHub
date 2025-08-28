@@ -1,5 +1,5 @@
 <template>
-  <Layout class="px-[60px] py-8">
+  <Layout class="px-[60px] py-8 overflow-y-auto">
     <Header :title="$t('module.template_style')"></Header>
     <div v-loading="loading" class="mt-5 flex-1 flex flex-col gap-4 bg-white py-6 px-8 box-border">
       <h4 class="text-[#1D1E1F] font-semibold">{{ $t('action_preview') }}</h4>
@@ -46,13 +46,7 @@
         </div>
       </div>
       <ElDivider />
-      <ElForm
-        ref="form_ref"
-        class="flex-1 max-h-[calc(100vh-378px)] overflow-auto"
-        :model="form"
-        :rules="rules"
-        label-position="top"
-      >
+      <ElForm ref="form_ref" class="flex-1" :model="form" :rules="rules" label-position="top">
         <ElFormItem :label="$t('template_style.website_style')">
           <ul class="flex flex-wrap gap-4">
             <li

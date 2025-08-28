@@ -91,6 +91,7 @@
             {{ $t('index.toolbox_recommend_desc') }}
           </p>
         </template>
+
         <ToolkitList class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mt-7" :list="showToolkitList" only-all />
 
         <router-link
@@ -116,13 +117,20 @@ import PromptView from '@/views/prompt/view.vue'
 
 import { useLinksStore } from '@/stores/modules/links'
 import { useAgentStore } from '@/stores/modules/agent'
+import { useUserStore } from '@/stores/modules/user'
 
 const route = useRoute()
 const router = useRouter()
 const linksStore = useLinksStore()
 const agentStore = useAgentStore()
+const userStore = useUserStore()
 const promptRef = ref<InstanceType<typeof PromptView>>()
 const searchValue = ref('')
+
+const hasPermission = (userGroupIds: number[], itemGroupIds: number[]) => {
+  if (!itemGroupIds || itemGroupIds.length === 0) return false
+  return userGroupIds.some((groupId) => itemGroupIds.includes(groupId))
+}
 
 const showAgentList = computed(() => {
   const filterList = agentStore.agentList.filter((item) => item.user_group_ids.length > 0)
@@ -133,10 +141,13 @@ const showAgentList = computed(() => {
 })
 
 const showToolkitList = computed(() => {
+  const filterList = linksStore.links.filter(
+    (item) => item.user_group_ids.length > 0 && hasPermission(userStore.info.group_ids || [], item.user_group_ids || [])
+  )
   if (searchValue.value) {
-    return linksStore.links.filter((item) => item.name.includes(searchValue.value))
+    return filterList.filter((item) => item.name.includes(searchValue.value))
   }
-  return linksStore.links.slice(0, 6)
+  return filterList.slice(0, 6)
 })
 
 const handleHotSearch = (keyword: string) => {

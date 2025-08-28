@@ -30,6 +30,15 @@ func SetApiRouter(router *gin.Engine) {
 		enterpriseRoute.PUT("/template_type", middleware.UserTokenAuth(model.RoleAdminUser), controller.UpdateEnterpriseTemplateType)
 	}
 
+	enterpriseConfigRoute := apiRouter.Group("/enterprise-configs")
+	{
+		enterpriseConfigRoute.GET("", middleware.UserTokenAuth(model.RoleAdminUser), controller.GetEnterpriseConfigTypes)
+		enterpriseConfigRoute.GET("/:type", middleware.UserTokenAuth(model.RoleAdminUser), controller.GetEnterpriseConfig)
+		enterpriseConfigRoute.GET("/:type/enabled", controller.IsEnterpriseConfigEnabled)
+		enterpriseConfigRoute.POST("/:type", middleware.UserTokenAuth(model.RoleAdminUser), controller.SaveEnterpriseConfig)
+		enterpriseConfigRoute.PUT("/:type/toggle", middleware.UserTokenAuth(model.RoleAdminUser), controller.ToggleEnterpriseConfig)
+	}
+
 	commonRoute := apiRouter.Group("")
 	{
 		commonRoute.POST("/register", controller.PasswordRegister)
@@ -45,6 +54,7 @@ func SetApiRouter(router *gin.Engine) {
 	emailRoute := apiRouter.Group("/email")
 	{
 		emailRoute.POST("/send_verification", controller.SendVerificationEmail)
+		emailRoute.POST("/send_test", middleware.UserTokenAuth(model.RoleAdminUser), controller.SendTestEmail)
 	}
 
 	userRoute := apiRouter.Group("/users")

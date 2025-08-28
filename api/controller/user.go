@@ -235,6 +235,8 @@ func PasswordRegister(c *gin.Context) {
 	isEmail := helper.IsValidEmail(username)
 	isMobile := helper.IsValidPhone(username)
 
+	eid := config.GetEID(c)
+
 	if isMobile && config.IS_SAAS {
 		if userRequest.VerifyCode == "" {
 			c.JSON(http.StatusBadRequest, model.ParamError.ToNewErrorResponse(model.InvalidVerificationCode))
@@ -250,15 +252,16 @@ func PasswordRegister(c *gin.Context) {
 	} else if !isEmail && config.IS_SAAS {
 		c.JSON(http.StatusBadRequest, model.ParamError.ToNewErrorResponse(model.InvalidMobileOrEmail))
 		return
-	} else if isEmail && config.IS_SAAS {
-		_, err = common.VerifyEmailCode(username, userRequest.VerifyCode)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, model.AuthFailed.ToResponse(err))
-			return
+	} else if isEmail {
+		enabled, _ := service.IsEnterpriseConfigEnabled(eid, model.EnterpriseConfigTypeSMTP)
+		if enabled || config.IS_SAAS {
+			_, err = common.VerifyEmailCode(username, userRequest.VerifyCode)
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, model.AuthFailed.ToResponse(err))
+				return
+			}
 		}
 	}
-
-	eid := config.GetEID(c)
 
 	// Get the first user group for this enterprise
 	theGroup, err := model.GetFirstGroupByEid(eid, model.USER_GROUP_TYPE)

@@ -16,6 +16,15 @@ export const linkValidator = ({ rule, value, callback, message } = {}) => {
   callback()
 }
 
+export const accountValidator = ({ rule, value, callback, message } = {}) => {
+  value = String(value) || ''.trim()
+  if (/[\s]/.test(value)) {
+    return callback(new Error(window.$t('form_account_validator')))
+  }
+  if (!value) return callback(new Error(window.$t(message)))
+  callback()
+}
+
 export const mobileValidator = ({ rule, value, callback, message } = {}) => {
   value = (value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
@@ -80,6 +89,15 @@ export const variableValidator = ({ rule, value, callback, message } = {}) => {
   callback()
 }
 
+export const portValidator = ({ rule, value, callback, message } = {}) => {
+  value = (value || '').trim()
+  if (!value) return callback(new Error(window.$t(message)))
+  if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 65535) {
+    return callback(new Error(window.$t('form_port_validator')))
+  }
+  callback()
+}
+
 export const generateInputRules = ({
   message = 'form_input_placeholder',
   trigger = ['blur', 'change'],
@@ -89,6 +107,16 @@ export const generateInputRules = ({
   if (validator.includes('text'))
     rules.push({
       validator: (rule, value, callback) => textValidator({ rule, value, callback, message }),
+      trigger,
+    })
+  if (validator.includes('port'))
+    rules.push({
+      validator: (rule, value, callback) => portValidator({ rule, value, callback, message }),
+      trigger,
+    })
+  if (validator.includes('account'))
+    rules.push({
+      validator: (rule, value, callback) => accountValidator({ rule, value, callback, message }),
       trigger,
     })
   if (validator.includes('link'))

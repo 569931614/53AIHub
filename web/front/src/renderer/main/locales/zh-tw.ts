@@ -105,7 +105,9 @@ export default {
     approve_success: '已點讚',
     approve_cancel: '已取消',
     register_success: '註冊成功',
-    update_success: '更改成功'
+    update_success: '更改成功',
+    copy_success: ' 複製成功 ',
+    copy_error: ' 複製失敗'
   },
 
   // 操作按鈕
@@ -193,6 +195,7 @@ export default {
     email_verify: '郵箱驗證',
     mobile_verify: '手機驗證',
     account: '賬號',
+    remark: ' 備註 ',
     account_alias: '手機',
     password: '密碼',
     email: '郵箱',
@@ -348,7 +351,11 @@ export default {
     title: '準備好了嗎？開始體驗百寶箱吧！',
     input_placeholder: '百寶箱可以讓你快速找到你需要的答案，Shift+Enter换行，Enter发送',
     max_agent_count: '最多只能选择{count}个模型',
-    search_placeholder: '搜索網站'
+    search_placeholder: '搜索網站',
+    direct_access: ' 直接訪問 ',
+    click_access: ' 點擊訪問 ',
+    account_access: ' 共享帳號 ',
+    account_text: ' 以下是共享的帳號與密碼，僅限本人使用'
   },
 
   // 空間相關

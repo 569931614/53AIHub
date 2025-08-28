@@ -18,7 +18,7 @@
           :placeholder="$t('form.input_placeholder') + $t('form.verify_code')"
         ></el-input>
         <el-button
-          v-if="verify_way === 'email'"
+          v-if="verify_way === 'email_verify'"
           v-debounce
           :disabled="isSending"
           class="!bg-[#f5f5f5] border-0 h-[44px] w-29 no-left-radius"

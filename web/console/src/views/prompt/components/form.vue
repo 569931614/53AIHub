@@ -1,7 +1,7 @@
 <template>
   <ElForm ref="formRef" class="py-0" :model="formData" label-position="top" label-width="120px">
     <!-- <h1 class="font-semibold text-[#1D1E1F]">{{ $t('basic_info') }}</h1> -->
-    <ElFormItem :label="$t('group')" prop="group_ids">
+    <ElFormItem :label="$t('group')" prop="group_ids" :rules="[{ required: true, message: $t('group_min_one') }]">
       <GroupSelect v-model="formData.group_ids" :group-type="GROUP_TYPE.PROMPT" default-first multiple clearable />
     </ElFormItem>
     <ElFormItem
