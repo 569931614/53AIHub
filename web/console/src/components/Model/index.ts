@@ -1,11 +1,8 @@
-import { useChannelStore } from '@/stores'
-import { getModelChannelTypes } from '@/constants/platform/config'
+import channelApi, { transformSelectData } from '@/api/modules/channel/index'
 
-export const loadModelList = async (): Promise<any[]> => {
-  const channelStore = useChannelStore()
-  const list = await channelStore.loadListData({ reset: false })
-  const modelList = (list || []).filter((item: any) =>
-    getModelChannelTypes().includes(item.channel_type)
-  )
-  return modelList
+export const loadModels = (type?: string): Promise<any[]> => {
+  return channelApi.listv2().then(res => {
+    const modelList = res.map(item => transformSelectData(item, type))
+    return modelList
+  })
 }

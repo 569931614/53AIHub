@@ -1,3 +1,5 @@
 package bailian
 
-var ModelList = []string{}
+var ModelList = []string{
+	"gte-rerank-v2",
+}

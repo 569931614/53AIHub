@@ -105,7 +105,9 @@ export default {
     approve_success: 'Liked',
     approve_cancel: 'Unliked',
     register_success: 'Registration successful',
-    update_success: 'Update successful'
+    update_success: 'Update successful',
+    copy_success: 'Copy successful',
+    copy_error: 'Copy failed'
   },
 
   // Action Buttons
@@ -193,6 +195,7 @@ export default {
     email_verify: 'Email Verification',
     mobile_verify: 'Mobile Verification',
     account: 'Account',
+    remark: 'Remark',
     account_alias: 'Mobile',
     password: 'Password',
     email: 'Email',
@@ -358,7 +361,11 @@ export default {
       'Use AI large model to intelligently generate content, just input your requirements for one-click content creation',
     input_placeholder: 'Send a message',
     max_agent_count: 'You can only select {count} agents',
-    search_placeholder: 'Search website'
+    search_placeholder: 'Search website',
+    direct_access: 'Direct access',
+    click_access: 'Click to access',
+    account_access: 'Shared account',
+    account_text: 'The following are the shared account and password, for personal use only'
   },
   // Space Related
   space: {

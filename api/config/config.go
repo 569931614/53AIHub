@@ -1,8 +1,6 @@
 package config
 
 import (
-	"net/smtp"
-
 	"os"
 	"path/filepath"
 	"strings"
@@ -118,17 +116,6 @@ func GetBinScriptPath(shName string) string {
 	} else {
 		return filepath.Join(workDir, "bin", shName)
 	}
-}
-
-func GetSMTPAuth() (smtp.Auth, string, error) {
-	from := env.String("SMTP_FROM", "")
-	auth := smtp.PlainAuth(
-		"",
-		env.String("SMTP_USERNAME", ""),
-		env.String("SMTP_PASSWORD", ""),
-		env.String("SMTP_HOST", ""),
-	)
-	return auth, from, nil
 }
 
 func GetWecomSuiteID() string {

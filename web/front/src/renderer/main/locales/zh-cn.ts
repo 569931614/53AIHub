@@ -107,7 +107,9 @@ export default {
     approve_success: '已点赞',
     approve_cancel: '已取消',
     register_success: '注册成功',
-    update_success: '更改成功'
+    update_success: '更改成功',
+    copy_success: '复制成功',
+    copy_error: '复制失败'
   },
 
   // 操作按钮
@@ -196,6 +198,7 @@ export default {
     email_verify: '邮箱验证',
     mobile_verify: '手机验证',
     account: '账号',
+    remark: '备注',
     account_alias: '手机',
     password: '密码',
     email: '邮箱',
@@ -352,7 +355,11 @@ export default {
     title: '准备好了吗？开始体验AI聚合问答啦！',
     input_placeholder: '多个AI解答你输入的问题，Shift+Enter换行，Enter发送',
     max_agent_count: '最多只能选择{count}个模型',
-    search_placeholder: '搜索网站'
+    search_placeholder: '搜索网站',
+    direct_access: '直接访问',
+    click_access: '点击访问',
+    account_access: '共享账号',
+    account_text: '以下是共享的账号与密码，仅限本人使用'
   },
 
   // 空间相关

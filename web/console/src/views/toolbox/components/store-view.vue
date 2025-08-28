@@ -30,10 +30,8 @@
               <div
                 class="absolute inset-0 items-center justify-center bg-[#222326] bg-opacity-55 rounded hidden group-hover:flex gap-2"
               >
-                <ElButton size="small" class="!mr-0" @click="handleVisit(link)"> {{ $t('action_visit') }} </ElButton
-                ><ElButton type="primary" size="small" class="!ml-0" @click="handleAdd(link)">{{
-                  $t('action_add')
-                }}</ElButton>
+                <ElButton class="!mr-0" @click="handleVisit(link)"> {{ $t('action_visit') }} </ElButton
+                ><ElButton type="primary" class="!ml-0" @click="handleAdd(link)">{{ $t('action_add') }}</ElButton>
               </div>
             </div>
           </template>

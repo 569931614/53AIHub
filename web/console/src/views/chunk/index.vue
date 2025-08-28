@@ -2,7 +2,7 @@
   <Layout class="px-[60px] py-8">
     <Header :title="$t('module.chunk_setting')" />
 
-    <div class="flex-1 flex flex-col bg-white p-6 mt-3 overflow-hidden">
+    <div v-loading="isLoading" class="flex-1 flex flex-col bg-white p-6 mt-3 overflow-y-auto">
       <div class="flex-1 flex flex-col overflow-y-auto">
         <div class="flex items-center gap-2.5 mb-4">
           <div class="w-1 h-4 bg-[#2563EB]"></div>
@@ -227,6 +227,7 @@ const CONFIG = {
 
 const { maxLength, headerList, commonList } = CONFIG
 
+const isLoading = ref(false)
 const setting = ref<Setting>(
   deepCopy({
     ...CHUNK_SETTING_DEFAULT,
@@ -320,6 +321,7 @@ const setSplitRule = (config: Setting, prefix: 'knowledge_chunking' | 'index_chu
 }
 
 onMounted(async () => {
+  isLoading.value = true
   const data = await chunkSettingApi.chunkingConfig.get()
   const config = {
     ...data,
@@ -334,6 +336,7 @@ onMounted(async () => {
   setSplitRule(config, 'knowledge_chunking')
   setSplitRule(config, 'index_chunking')
   setting.value = config
+  isLoading.value = false
 })
 </script>
 

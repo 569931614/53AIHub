@@ -138,7 +138,7 @@
           <el-button class="mr-1" link type="primary" @click="handleRegister">
             {{ $t('action.user_register') }}
           </el-button>
-          <template v-if="!isOpLocalEnv">
+          <template v-if="!isOpLocalEnv || (isOpLocalEnv && openSMTP)">
             <div class="border-l border-[#E6E8EB] mr-1 h-4"></div>
             <el-button link type="primary" @click="handleForgetPassword">
               {{ $t('action.forget_password') }}
@@ -196,7 +196,7 @@
     :close-on-click-modal="false"
     center
   >
-    <Register ref="registerRef" @success="handleClose" @close="handleClose"></Register>
+    <Register ref="registerRef" :open-s-m-t-p="openSMTP" @success="handleClose" @close="handleClose"></Register>
   </el-dialog>
 
   <!-- 重置密码弹窗 -->
@@ -228,7 +228,7 @@
 
 <script setup lang="ts">
 import { ArrowLeft } from '@element-plus/icons-vue'
-import { ref, reactive, watch, computed } from 'vue'
+import { ref, reactive, watch, computed, onMounted } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/modules/user'
@@ -241,6 +241,7 @@ import useEnv from '@/hooks/useEnv'
 import useMobile from '@/hooks/useMobile'
 
 import commonApi from '@/api/modules/common'
+import enterpriseApi from '@/api/modules/enterprise'
 import Register from './register.vue'
 import ForgetPassword from './forgetPassword.vue'
 import WechatView from './wechat.vue'
@@ -259,6 +260,8 @@ const enterpriseStore = useEnterpriseStore()
 const { sendcode, codeRule, codeCount } = useMobile()
 
 const formRef = ref<FormInstance>()
+
+const openSMTP = ref(false)
 
 const isVisible = ref(false)
 
@@ -380,7 +383,7 @@ const handleSubmit = () => {
       const message = data.message || ''
       if (message.includes('record not found')) {
         // 本地版自动注册
-        if (isOpLocalEnv.value) {
+        if (isOpLocalEnv.value && !openSMTP.value) {
           await userStore.register({
             username: form.username,
             password: form.password
@@ -473,6 +476,11 @@ const handleOauthSuccess = async (data: any) => {
   close()
 }
 
+const loadSMTP = async () => {
+  const { data } = await enterpriseApi.getSMTPInfo('smtp')
+  openSMTP.value = data
+}
+
 watch(
   () => codeCount.value,
   (newVal) => {
@@ -486,6 +494,10 @@ watch(
 defineExpose({
   open,
   close
+})
+
+onMounted(() => {
+  loadSMTP()
 })
 </script>
 

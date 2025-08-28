@@ -6,16 +6,21 @@ import (
 
 	"github.com/53AI/53AIHub/config"
 	"github.com/53AI/53AIHub/model"
+	"github.com/53AI/53AIHub/service"
 	"github.com/gin-gonic/gin"
 )
 
 type AILinkRequest struct {
-	GroupID     int64  `json:"group_id" example:"1"`
-	Name        string `json:"name" example:"ai_link_name"`
-	Logo        string `json:"logo" example:"logo_url"`
-	URL         string `json:"url" example:"ai_link_url"`
-	Description string `json:"description" example:"ai_link_description"`
-	Sort        int64  `json:"sort" example:"0"`
+	GroupID       int64  `json:"group_id" example:"1"`
+	Name          string `json:"name" example:"ai_link_name"`
+	Logo          string `json:"logo" example:"logo_url"`
+	URL           string `json:"url" example:"ai_link_url"`
+	Description   string `json:"description" example:"ai_link_description"`
+	Sort          int64  `json:"sort" example:"0"`
+	SharedAccount string `json:"shared_account" example:"[{'account':'admin', 'password':'<PASSWORD>', 'remark':''}]"`
+	// 使用范围
+	SubscriptionGroupIds []int64 `json:"subscription_group_ids"`
+	UserGroupIds         []int64 `json:"user_group_ids"`
 }
 
 // @Summary Create AI Link
@@ -35,19 +40,61 @@ func CreateAILink(c *gin.Context) {
 	}
 
 	link := model.AILink{
-		Eid:         config.GetEID(c),
-		GroupID:     req.GroupID,
-		Name:        req.Name,
-		Logo:        req.Logo,
-		URL:         req.URL,
-		Description: req.Description,
-		Sort:        req.Sort,
-		CreatedBy:   config.GetUserId(c),
+		Eid:           config.GetEID(c),
+		GroupID:       req.GroupID,
+		Name:          req.Name,
+		Logo:          req.Logo,
+		URL:           req.URL,
+		Description:   req.Description,
+		Sort:          req.Sort,
+		CreatedBy:     config.GetUserId(c),
+		SharedAccount: req.SharedAccount,
 	}
 
 	if err := model.CreateAILink(&link); err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
 		return
+	}
+
+	// 添加分组关联
+	allGroupIds := make([]int64, 0)
+
+	// 添加订阅分组
+	if len(req.SubscriptionGroupIds) > 0 {
+		allGroupIds = append(allGroupIds, req.SubscriptionGroupIds...)
+	}
+
+	// 添加用户分组
+	if len(req.UserGroupIds) > 0 {
+		allGroupIds = append(allGroupIds, req.UserGroupIds...)
+	}
+
+	// 创建资源权限
+	if len(allGroupIds) > 0 {
+		tx := model.DB.Begin()
+		if tx.Error != nil {
+			c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+			return
+		}
+
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
+
+		// 使用通用方法更新资源权限
+		if err := service.UpdateResourcePermissions(c, tx, link.ID, model.ResourceTypeAILink, allGroupIds); err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+			return
+		}
+
+		// 提交事务
+		if err := tx.Commit().Error; err != nil {
+			c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, model.Success.ToResponse(link))
@@ -60,7 +107,7 @@ func CreateAILink(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "Link ID"
-// @Success 200 {object} model.CommonResponse
+// @Success 200 {object} model.CommonResponse{data=model.AILink}
 // @Router /api/ai_links/{id} [get]
 func GetAILink(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
@@ -70,6 +117,11 @@ func GetAILink(c *gin.Context) {
 		c.JSON(http.StatusNotFound, model.NotFound.ToResponse(nil))
 		return
 	}
+	err = link.LoadUserGroupIds()
+	if err != nil {
+		link.UserGroupIds = []int64{}
+	}
+	link.LoadHasSharedAccount()
 
 	c.JSON(http.StatusOK, model.Success.ToResponse(link))
 }
@@ -105,10 +157,53 @@ func UpdateAILink(c *gin.Context) {
 	link.URL = req.URL
 	link.Description = req.Description
 	link.Sort = req.Sort
+	link.SharedAccount = req.SharedAccount
 
 	if err := model.UpdateAILink(link); err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
 		return
+	}
+
+	// 更新分组关联
+	allGroupIds := make([]int64, 0)
+
+	// 添加订阅分组
+	if len(req.SubscriptionGroupIds) > 0 {
+		allGroupIds = append(allGroupIds, req.SubscriptionGroupIds...)
+	}
+
+	// 添加用户分组
+	if len(req.UserGroupIds) > 0 {
+		allGroupIds = append(allGroupIds, req.UserGroupIds...)
+	}
+
+	tx := model.DB.Begin()
+	if tx.Error != nil {
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+		return
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 使用通用方法更新资源权限
+	if err := service.UpdateResourcePermissions(c, tx, link.ID, model.ResourceTypeAILink, allGroupIds); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+		return
+	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+		return
+	}
+	err = link.LoadUserGroupIds()
+	if err != nil {
+		link.UserGroupIds = []int64{}
 	}
 
 	c.JSON(http.StatusOK, model.Success.ToResponse(link))
@@ -127,11 +222,34 @@ func DeleteAILink(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	link, err := model.GetAILinkByID(int64(id))
 
-	if err == nil && link.Eid == config.GetEID(c) {
-		err = model.DeleteAILinkByID(int64(id))
+	if err != nil || link.Eid != config.GetEID(c) {
+		c.JSON(http.StatusNotFound, model.NotFound.ToResponse(nil))
+		return
 	}
 
-	if err != nil {
+	// 开始事务
+	tx := model.DB.Begin()
+	if tx.Error != nil {
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(tx.Error))
+		return
+	}
+
+	// 删除AI链接
+	if err := tx.Delete(link).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+		return
+	}
+
+	// 使用通用方法删除资源权限
+	if err := service.UpdateResourcePermissions(c, tx, int64(id), model.ResourceTypeAILink, []int64{}); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+		return
+	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
 		return
 	}
@@ -147,7 +265,7 @@ func DeleteAILink(c *gin.Context) {
 // @Security BearerAuth
 // @Param group_id query int false "Empty for all groups or group ID"
 // @Param keyword query string false "Search by name"
-// @Success 200 {object} model.CommonResponse
+// @Success 200 {object} model.CommonResponse{data=[]model.AILink}
 // @Router /api/ai_links [get]
 func GetAILinks(c *gin.Context) {
 	groupID, _ := strconv.ParseInt(c.Query("group_id"), 10, 64)
@@ -183,7 +301,7 @@ func GetAILinks(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} model.CommonResponse
+// @Success 200 {object} model.CommonResponse{data=[]model.AILink}
 // @Router /api/ai_links/current [get]
 func GetCurrentSiteAILinks(c *gin.Context) {
 	eid := config.GetEID(c)

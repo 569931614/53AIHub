@@ -7,8 +7,10 @@ export const enterprise = {
   },
   get(id: string) {
     return service.get(`/api/enterprises/${id}`).catch(handleError)
+  },
+  getSMTPInfo(type: string) {
+    return service.get(`/api/enterprise-configs/${type}/enabled`).catch(handleError)
   }
 }
 
 export default enterprise
-

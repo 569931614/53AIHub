@@ -31,6 +31,15 @@ const AGENT_MODES = {
   COMPLETION: 'completion',
 } as const
 
+const MODEL_USE_TYPE = {
+  // 推理
+  REASONING: '1',
+  // 嵌入
+  EMBEDDING: '2',
+  // 重排序
+  RERANKER: '3',
+}
+
 // 统一的平台配置
 const PLATFORM_CONFIG = {
   prompt: {
@@ -241,9 +250,29 @@ const MODEL_CONFIG = {
     channelType: 3,
     multiple: true,
   },
+  // #ifdef KM
+  bailian: {
+    name: 'bailian',
+    owner: 'bailian',
+    channelType: 17,
+    multiple: false,
+  },
+  volcengine: {
+    name: 'volcengine',
+    owner: 'volcengine',
+    channelType: 900,
+    multiple: false,
+  },
+  qianfan: {
+    name: 'qianfan',
+    owner: 'qianfan',
+    channelType: 901,
+    multiple: false,
+  },
+  // #endif
 } as const
 
-export { AGENT_MODES, BACKEND_AGENT_TYPE }
+export { AGENT_MODES, BACKEND_AGENT_TYPE, MODEL_USE_TYPE }
 
 export const AGENT_CATEGORIES = {
   INTELLIGENT_AGENT_PLATFORM: 'intelligent_agent_platform',
@@ -258,7 +287,7 @@ export const PROVIDER_CATEGORIES = {
 
 // 类型定义
 export type ProviderId = number
-export type AgentType = (typeof AGENT_TYPES)[keyof typeof AGENT_TYPES]
+export type AgentType = (typeof AGENT_TYPE)[keyof typeof AGENT_TYPE]
 export type ChannelType = keyof typeof PLATFORM_CONFIG
 export type ChannelValue = (typeof PLATFORM_CONFIG)[keyof typeof PLATFORM_CONFIG]['channelValue']
 
@@ -267,6 +296,7 @@ export type ProviderValue = (typeof PLATFORM_CONFIG)[keyof typeof PLATFORM_CONFI
 
 export type ModelType = keyof typeof MODEL_CONFIG
 export type ModelValue = (typeof MODEL_CONFIG)[keyof typeof MODEL_CONFIG]['channelType']
+export type ModelUseType = keyof typeof MODEL_USE_TYPE
 
 export type AgentMode = (typeof AGENT_MODES)[keyof typeof AGENT_MODES]
 export type AgentCategory = (typeof AGENT_CATEGORIES)[keyof typeof AGENT_CATEGORIES]
@@ -361,7 +391,7 @@ const createConfig = <T>(type: string, template: (type: string) => T): T => temp
 // 配置数据生成
 export const providers: Record<ProviderId, ProviderConfig> = Object.fromEntries(
   Object.entries(PLATFORM_CONFIG)
-    .filter(([key, config]) => config.providerValue > 0)
+    .filter(([, config]) => config.providerValue > 0)
     .map(([key, config]) => [
       config.providerValue,
       createConfig(key, type => ({
@@ -369,6 +399,7 @@ export const providers: Record<ProviderId, ProviderConfig> = Object.fromEntries(
         name: type,
         icon: type,
         label: `provider_platform.${type}`,
+        provider_type: config.providerValue,
         channelId: type as ChannelType,
         agentId: config.agents[0].name as AgentType,
         auth: config.auth,
@@ -494,7 +525,6 @@ export const CHANNEL_TYPE_VALUE_MAP = new Map([
   ...Object.entries(models).map(([key, value]) => [key, value.channelType] as const),
   ...Object.entries(agents).map(([key, value]) => [key, value.channelType] as const),
 ])
-console.log(CHANNEL_TYPE_VALUE_MAP)
 // 工具函数
 export const getProviderByAgentId = (agentId: AgentType) =>
   agents[agentId]?.providerId && providers[agents[agentId].providerId]

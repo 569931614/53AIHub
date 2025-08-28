@@ -1,18 +1,21 @@
 <template>
   <Layout class="px-[60px] py-8">
     <Header title="模型设置" />
-    <div class="flex-1 flex flex-col bg-white py-6 px-10 mt-3 box-border max-h-[calc(100vh-100px)] overflow-auto">
+    <div
+      v-loading="isLoading"
+      class="flex-1 flex flex-col bg-white py-6 px-10 mt-3 box-border max-h-[calc(100vh-100px)] overflow-auto"
+    >
       <div class="max-w-[600px]">
         <ElForm label-position="top">
           <ElFormItem label="逻辑推理">
-            <ModelSelect v-model="logicValue" />
+            <ModelSelect v-model="logicValue" :type="MODEL_USE_TYPE.REASONING" />
             <!-- <ElSelect v-model="formData.data1" class="w-[600px] h-10">
               <ElOption></ElOption>
             </ElSelect> -->
           </ElFormItem>
 
           <ElFormItem label="向量嵌入">
-            <ModelSelect v-model="vectorValue" />
+            <ModelSelect v-model="vectorValue" :type="MODEL_USE_TYPE.EMBEDDING" />
           </ElFormItem>
 
           <ElFormItem label="检索设置">
@@ -137,7 +140,7 @@
                     />
                   </div>
                   <div v-if="searchConfig.reranking_enable || searchConfig.hybrid" class="mt-4">
-                    <ModelSelect v-model="rerankValue" />
+                    <ModelSelect v-model="rerankValue" :type="MODEL_USE_TYPE.RERANKER" />
                   </div>
                 </div>
                 <div class="border-t border-dashed my-4" />
@@ -203,6 +206,7 @@ import { QuestionFilled } from '@element-plus/icons-vue'
 import ModelSelect from '@/components/Model/select.vue'
 import { chunkSettingApi, ModelSetting } from '@/api/modules/chunk-setting'
 import { deepCopy } from '@/utils'
+import { MODEL_USE_TYPE } from '@/constants/platform/config'
 
 const RERANKING_MODE = {
   WEIGHTED_SCORE: 'weighted_score',
@@ -251,6 +255,7 @@ const defaultSetting: ModelSetting = {
   updated_time: 1672502400,
 }
 
+const isLoading = ref(false)
 const setting = ref<ModelSetting>(deepCopy(defaultSetting))
 
 const logicValue = computed({
@@ -333,6 +338,7 @@ const handleSave = async () => {
 }
 
 const loadConfig = async () => {
+  isLoading.value = true
   const data = await chunkSettingApi.modelConfig.get()
   const { search_config } = data.model_config
   if (search_config.rerank_model === '') {
@@ -347,6 +353,7 @@ const loadConfig = async () => {
   }
 
   setting.value = data
+  isLoading.value = false
 }
 
 onMounted(async () => {

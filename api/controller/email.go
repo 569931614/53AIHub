@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/smtp"
 	"strconv"
 	"time"
 
 	"github.com/53AI/53AIHub/common"
+	"github.com/53AI/53AIHub/config"
 	"github.com/53AI/53AIHub/model"
+	"github.com/53AI/53AIHub/service"
 	"github.com/gin-gonic/gin"
 	"github.com/jordan-wright/email"
 	"gorm.io/gorm"
@@ -29,7 +32,6 @@ type SendVerificationEmailRequest struct {
 // @Tags Email
 // @Accept json
 // @Produce json
-// @Security BearerAuth
 // @Param data body SendVerificationEmailRequest true "邮箱验证请求"
 // @Success 200 {object} model.CommonResponse{data=string} "成功响应：验证码已发送"
 // @Failure 400 {object} model.CommonResponse "参数错误"
@@ -75,21 +77,86 @@ func SendVerificationEmail(c *gin.Context) {
 		return
 	}
 
-	err = common.RedisSet("email_verification:"+req.Email, code, codeExpiration)
-	if err != nil {
-	}
+	_ = common.RedisSet("email_verification:"+req.Email, code, codeExpiration)
 
+	eid := config.GetEID(c)
 	e := email.NewEmail()
 	e.To = []string{req.Email}
 	e.Subject = "邮箱验证码"
 	e.Text = []byte(fmt.Sprintf("您的验证码是：%s，有效期%d分钟", code, duration))
 
-	if err := common.SendEmail(e); err != nil {
+	auth, from, host, port, isSsl, err := service.GetSmtpConfig(eid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.NetworkError.ToResponse(fmt.Errorf("failed to get SMTP auth: %w", err)))
+		return
+	}
+	if from == "" {
+		c.JSON(http.StatusInternalServerError, model.NetworkError.ToResponse(errors.New("SMTP from address is empty")))
+		return
+	}
+	e.From = from
+
+	if err := common.SendEmail(e, auth, isSsl, host, port); err != nil {
 		c.JSON(http.StatusInternalServerError, model.NetworkError.ToResponse(err))
 		return
 	}
 
 	c.JSON(http.StatusOK, model.Success.ToResponse("Verification code has been sent"))
+}
+
+type SendTestEmailRequest struct {
+	Host     string `json:"host" binding:"required" example:"smtp.126.com"`
+	Port     int    `json:"port" binding:"required" example:"465"`
+	Username string `json:"username" binding:"required" example:"user@126.com"`
+	Password string `json:"password" binding:"required" example:"123456"`
+	From     string `json:"from" binding:"required" example:"user@126.com"`
+	IsSSL    bool   `json:"is_ssl" example:"true"`
+	To       string `json:"to" binding:"required" example:"user@126.com"`
+}
+
+// @Summary 发送邮箱测试邮件
+// @Description 向指定邮箱发送测试信息
+// @Tags Email
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param data body SendTestEmailRequest true "邮箱测试请求"
+// @Success 200 {object} model.CommonResponse{data=string} "成功响应：已发送"
+// @Failure 400 {object} model.CommonResponse "参数错误"
+// @Failure 500 {object} model.CommonResponse "服务器内部错误"
+// @Router /api/email/send_test [post]
+func SendTestEmail(c *gin.Context) {
+	var req SendTestEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, model.ParamError.ToResponse(err))
+		return
+	}
+
+	e := email.NewEmail()
+	e.To = []string{req.To}
+	e.Subject = "53AI Hub SMTP设置测试邮件！"
+	e.Text = []byte("收到此邮件表示配置无误")
+
+	from := req.From
+	auth := smtp.PlainAuth(
+		"",
+		req.Username,
+		req.Password,
+		req.Host,
+	)
+
+	// 使用配置中的值
+	host := req.Host
+	port := req.Port
+	isSsl := req.IsSSL
+	e.From = from
+
+	if err := common.SendEmail(e, auth, isSsl, host, port); err != nil {
+		c.JSON(http.StatusInternalServerError, model.NetworkError.ToResponse(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, model.Success.ToResponse("Test email has been sent"))
 }
 
 // UpdateUserEmailRequest 更新用户邮箱请求结构体

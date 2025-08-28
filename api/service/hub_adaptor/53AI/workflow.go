@@ -1,4 +1,4 @@
-package ai53
+package adaptor53AI
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	db_model "github.com/53AI/53AIHub/model"
@@ -38,13 +39,6 @@ type AI53WorkflowRequest struct {
 	Inputs       map[string]interface{} `json:"inputs"`        // 使用 inputs 而不是 variables
 	ResponseMode string                 `json:"response_mode"` // 使用 response_mode 而不是 stream
 	User         string                 `json:"user"`
-}
-
-// AI53FileInput 53AI 文件输入结构
-type AI53FileInput struct {
-	FileID string `json:"file_id"`
-	Type   string `json:"type"`
-	Name   string `json:"name"`
 }
 
 // AI53WorkflowEvent 53AI 工作流事件结构 (精简版)
@@ -124,10 +118,10 @@ func (a *AI53WorkflowAdaptor) ConvertRequest(c *gin.Context, relayMode int, requ
 			ai53Request.Inputs["input"] = lastMessage.StringContent()
 		}
 
-		// 处理文件内容 (53AI 方式)
+		// 处理文件内容 (使用与adaptor.go相同的File结构)
 		if lastMessage.Content != nil {
 			if contentArray, ok := lastMessage.Content.([]interface{}); ok {
-				var files []AI53FileInput
+				var files []File
 				for _, contentItem := range contentArray {
 					if contentObj, ok := contentItem.(db_model.ObjectStringContent); ok {
 						if contentObj.Type == "image" || contentObj.Type == "file" {
@@ -140,10 +134,12 @@ func (a *AI53WorkflowAdaptor) ConvertRequest(c *gin.Context, relayMode int, requ
 									continue
 								}
 
-								files = append(files, AI53FileInput{
-									FileID: fileMapping.ChannelFileID,
-									Type:   contentObj.Type,
-									Name:   uploadFile.FileName,
+								// 使用与adaptor.go相同的File结构
+								files = append(files, File{
+									UploadFileID:   fileMapping.ChannelFileID,
+									Type:           contentObj.Type,
+									TransferMethod: TransferMethodLocalFile,
+									Url:            "",
 								})
 
 								logger.SysLogf("✅ 53AI工作流文件处理成功 - 原始ID: %d, 渠道文件ID: %s, 类型: %s",
@@ -154,7 +150,8 @@ func (a *AI53WorkflowAdaptor) ConvertRequest(c *gin.Context, relayMode int, requ
 				}
 
 				if len(files) > 0 {
-					ai53Request.Inputs["files"] = files
+					// 将文件对象数组赋值给sys_files参数
+					ai53Request.Inputs["sys_files"] = files
 				}
 			}
 		}
@@ -166,27 +163,150 @@ func (a *AI53WorkflowAdaptor) ConvertRequest(c *gin.Context, relayMode int, requ
 
 // processFile 处理文件上传 (53AI 方式)
 func (a *AI53WorkflowAdaptor) processFile(uploadFile *db_model.UploadFile) (*db_model.ChannelFileMapping, error) {
+	logger.SysLogf("开始处理53AI工作流文件 - 文件ID: %d, 文件名: %s", uploadFile.ID, uploadFile.FileName)
+
 	// 查询是否已存在文件映射
 	fileMapping := uploadFile.GetChannelFileMapping(a.meta.ChannelId, a.meta.ActualModelName)
 	if fileMapping != nil && fileMapping.ChannelFileID != "" {
 		// 文件已存在，直接返回
+		logger.SysLogf("文件映射已存在 - ChannelFileID: %s", fileMapping.ChannelFileID)
 		return fileMapping, nil
 	}
 
-	// 创建新的文件映射 (简化处理)
-	fileMapping = &db_model.ChannelFileMapping{
-		Eid:           uploadFile.Eid, // 使用文件的 Eid
-		ChannelID:     a.meta.ChannelId,
-		Model:         a.meta.ActualModelName,
-		FileID:        uploadFile.ID,
-		ChannelFileID: fmt.Sprintf("ai53_%d", uploadFile.ID), // 53AI 特有的文件ID格式
+	// 创建新的文件映射
+	fileMapping = &db_model.ChannelFileMapping{}
+	// 对于工作流，使用空的 conversationID
+	logger.SysLogf("开始上传文件到53AI - ChannelID: %d, ModelName: %s", a.meta.ChannelId, a.meta.ActualModelName)
+	err := AI53UploadFile(a.meta, uploadFile, fileMapping, "")
+	if err != nil {
+		logger.SysErrorf("上传文件到53AI失败: %v", err)
+		return nil, err
 	}
 
-	if err := db_model.CreateChannelFileMapping(fileMapping); err != nil {
-		return nil, fmt.Errorf("创建文件映射失败: %v", err)
+	logger.SysLogf("文件上传成功 - ChannelFileID: %s", fileMapping.ChannelFileID)
+
+	err = db_model.CreateChannelFileMapping(fileMapping)
+	if err != nil {
+		logger.SysErrorf("创建文件映射失败: %v", err)
+		return nil, err
 	}
+
+	logger.SysLogf("文件映射创建成功 - ID: %d", fileMapping.Id)
 
 	return fileMapping, nil
+}
+
+// processWorkflowParameters 处理工作流参数中的文件上传
+func (a *AI53WorkflowAdaptor) processWorkflowParameters(parameters map[string]interface{}) (map[string]interface{}, error) {
+	if a.meta == nil {
+		return parameters, fmt.Errorf("meta is nil")
+	}
+
+	processedParams := make(map[string]interface{})
+
+	for key, value := range parameters {
+		processedValue, err := a.processParameterValue(value)
+		if err != nil {
+			logger.SysErrorf("处理参数 %s 失败: %v", key, err)
+			// 如果单个参数处理失败，使用原始值
+			processedParams[key] = value
+		} else {
+			processedParams[key] = processedValue
+		}
+	}
+
+	return processedParams, nil
+}
+
+// processParameterValue 递归处理参数值，支持字符串、数组、对象
+func (a *AI53WorkflowAdaptor) processParameterValue(value interface{}) (interface{}, error) {
+	switch v := value.(type) {
+	case string:
+		// 检查是否为 file_id: 格式
+		return a.processFileIDString(v)
+	case []interface{}:
+		// 处理数组
+		processedArray := make([]interface{}, len(v))
+		for i, item := range v {
+			processedItem, err := a.processParameterValue(item)
+			if err != nil {
+				processedArray[i] = item // 使用原始值
+			} else {
+				processedArray[i] = processedItem
+			}
+		}
+		return processedArray, nil
+	case map[string]interface{}:
+		// 处理对象
+		processedMap := make(map[string]interface{})
+		for k, val := range v {
+			processedVal, err := a.processParameterValue(val)
+			if err != nil {
+				processedMap[k] = val // 使用原始值
+			} else {
+				processedMap[k] = processedVal
+			}
+		}
+		return processedMap, nil
+	default:
+		// 其他类型直接返回
+		return value, nil
+	}
+}
+
+// processFileIDString 处理 file_id: 格式的字符串
+func (a *AI53WorkflowAdaptor) processFileIDString(value string) (interface{}, error) {
+	// 检查是否为 file_id: 格式
+	if !strings.HasPrefix(value, "file_id:") {
+		return value, nil
+	}
+
+	// 提取文件ID
+	fileIDStr := strings.TrimPrefix(value, "file_id:")
+	fileID, err := strconv.ParseInt(fileIDStr, 10, 64)
+	if err != nil {
+		logger.SysErrorf("解析文件ID失败: %s, error: %v", fileIDStr, err)
+		return value, err
+	}
+
+	// 获取上传文件对象
+	uploadFile, err := db_model.GetUploadFileByID(fileID)
+	if err != nil {
+		logger.SysErrorf("获取上传文件失败: ID=%d, error: %v", fileID, err)
+		return value, err
+	}
+
+	// 获取渠道文件映射
+	channelID := a.meta.ChannelId
+	modelName := a.meta.ActualModelName
+
+	fileMapping := uploadFile.GetChannelFileMapping(channelID, modelName)
+	if fileMapping == nil || fileMapping.ChannelFileID == "" {
+		// 创建新的文件映射
+		fileMapping, err = a.processFile(uploadFile)
+		if err != nil {
+			logger.SysErrorf("处理53AI文件失败: %v", err)
+			return value, err
+		}
+	}
+
+	// 确定文件类型
+	// fileType := "image" // 默认类型
+	fileType := Get53AIFileType(uploadFile.MimeType, uploadFile.Extension)
+
+	// 对于工作流，返回完整的File对象数组而不是单个对象
+	fileObj := File{
+		UploadFileID:   fileMapping.ChannelFileID,
+		Type:           fileType,
+		TransferMethod: TransferMethodLocalFile,
+		Url:            "",
+	}
+
+	logger.SysLogf("工作流文件处理成功 - 原始ID: %d, 渠道文件ID: %s, 类型: %s",
+		fileID, fileMapping.ChannelFileID, fileType)
+
+	// 返回文件对象数组，确保sys_files参数格式正确
+	return []File{fileObj}, nil
 }
 
 // getUserID 获取用户ID
@@ -362,8 +482,16 @@ func (a *AI53WorkflowAdaptor) ConvertWorkflowToAI53Request(parameters map[string
 		return nil, fmt.Errorf("工作流参数不能为空")
 	}
 
+	// 处理参数中的文件上传
+	processedParameters, err := a.processWorkflowParameters(parameters)
+	if err != nil {
+		logger.SysErrorf("处理工作流文件参数失败: %v", err)
+		// 如果文件处理失败，使用原始参数继续执行
+		processedParameters = parameters
+	}
+
 	ai53Request := &AI53WorkflowRequest{
-		Inputs:       parameters,
+		Inputs:       processedParameters,
 		ResponseMode: "streaming", // 使用 streaming 模式
 		User:         "ai53_user",
 	}

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/53AI/53AIHub/model"
+	"github.com/53AI/53AIHub/service"
 	"github.com/gin-gonic/gin"
 	"github.com/songquanpeng/one-api/relay"
 	"github.com/songquanpeng/one-api/relay/adaptor/openai"
@@ -79,6 +80,40 @@ func init() {
 			})
 		}
 	}
+
+	// 添加自定义适配器的模型
+	customAdaptorTypes := []int{
+		model.ChannelApiDify,
+		model.ChannelApi53AI,
+		model.ChannelApiBailian,
+		model.ChannelApiVolcengine,
+		model.ChannelApiAppBuilder,
+		model.ChannelApiYuanqi,
+		model.ChannelApiTypeFastGpt,
+		model.ChannelApiTypeMaxKB,
+		model.ChannelApiTypeN8n,
+		model.ChannelApiTypeCozeStudio,
+	}
+
+	for _, apiType := range customAdaptorTypes {
+		adaptor := service.GetAdaptor(apiType)
+		if adaptor != nil {
+			channelName := adaptor.GetChannelName()
+			modelNames := adaptor.GetModelList()
+			for _, modelName := range modelNames {
+				models = append(models, OpenAIModels{
+					Id:         modelName,
+					Object:     "model",
+					Created:    1626777600,
+					OwnedBy:    channelName,
+					Permission: permission,
+					Root:       modelName,
+					Parent:     nil,
+				})
+			}
+		}
+	}
+
 	for _, channelType := range openai.CompatibleChannels {
 		if channelType == channeltype.Azure {
 			continue

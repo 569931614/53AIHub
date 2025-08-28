@@ -188,7 +188,7 @@
   </el-drawer>
 
   <CreateDrawer ref="createDrawerRef" @success="row => onAgentAdd(row.agent_type, row, true)" />
-  <GroupDialog ref="dialogRef" :group-type="GROUP_TYPE.AGENT" />
+  <GroupDialog ref="dialogRef" :group-type="GROUP_TYPE.AGENT" @change="handleGroupChange" />
 </template>
 
 <script setup name="Agent" lang="ts">
@@ -334,6 +334,12 @@ const refresh = async () => {
   await loadListData()
 }
 
+const handleGroupChange = (result: { value: Group[] }) => {
+  groupList.value = result.value
+  filter_form.group = ''
+  refresh()
+}
+
 const onTableSizeChange = (size: number) => {
   filter_form.page_size = size
   refresh()
@@ -449,5 +455,9 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 ::v-deep(.el-table__cell) {
   padding: 14px 0;
+}
+
+::v-deep(.el-select__placeholder) {
+  color: black !important;
 }
 </style>

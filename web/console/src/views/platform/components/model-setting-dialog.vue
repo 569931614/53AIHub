@@ -1,3 +1,43 @@
+<template>
+  <ElDialog
+    v-model="model_visible"
+    :title="$t('module.platform_model_models_edit')"
+    :close-on-click-modal="false"
+    width="600px"
+    destroy-on-close
+    append-to-body
+  >
+    <ElForm ref="model_form_ref" :model="model_form" label-position="top">
+      <ElFormItem
+        :label="$t('module.platform_model_models_id')"
+        prop="id"
+        class="is-required"
+        :rules="generateInputRules({ message: 'form_input_placeholder' })"
+      >
+        <ElInput v-model="model_form.id" size="large" disabled :placeholder="$t('form_input_placeholder')" />
+      </ElFormItem>
+      <ElFormItem :label="$t('module.platform_model_models_name')" prop="name">
+        <ElInput v-model="model_form.name" size="large" :placeholder="$t('form_input_placeholder')" />
+      </ElFormItem>
+    </ElForm>
+    <template #footer>
+      <div class="pb-4 flex items-center justify-center">
+        <ElButton
+          class="w-24 h-9"
+          type="primary"
+          :loading="submitting || loading"
+          @click="() => onSave({ action: 'model_edit' })"
+        >
+          {{ $t('action_save') }}
+        </ElButton>
+        <ElButton class="w-24 h-9 text-[#1D1E1F]" type="info" plain @click="() => close({ action: 'model_edit' })">
+          {{ $t('action_cancel') }}
+        </ElButton>
+      </div>
+    </template>
+  </ElDialog>
+</template>
+
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useChannelStore } from '@/stores'
@@ -52,8 +92,7 @@ const close = () => {
 
 const onSave = () => {
   model_form_ref.value.validate(async (valid: boolean) => {
-    if (!valid)
-      return
+    if (!valid) return
     let { id = '', name = '', channel_type } = model_form
     name = name.trim()
     const config = origin_data.value.config || {}
@@ -61,10 +100,8 @@ const onSave = () => {
       ...(config.model_alias_map || {}),
       [id]: name,
     }
-    if (!config.model_alias_map[id])
-      delete config.model_alias_map[id]
-    if (!Object.keys(config.model_alias_map).length)
-      delete config.model_alias_map
+    if (!config.model_alias_map[id]) delete config.model_alias_map[id]
+    if (!Object.keys(config.model_alias_map).length) delete config.model_alias_map
     const data = {
       channel_id: origin_data.value.channel_id,
       config,
@@ -74,6 +111,7 @@ const onSave = () => {
       name: origin_data.value.name,
       other: origin_data.value.other,
       type: channel_type,
+      custom_config: origin_data.value.custom_config ? JSON.stringify(origin_data.value.custom_config) : '',
     }
     submitting.value = true
     await channel_store.save({ data }).finally(() => {
@@ -91,38 +129,4 @@ defineExpose({
 })
 </script>
 
-<template>
-  <ElDialog
-    v-model="model_visible" :title="$t('module.platform_model_models_edit')" :close-on-click-modal="false"
-    width="600px" destroy-on-close append-to-body
-  >
-    <ElForm ref="model_form_ref" :model="model_form" label-position="top">
-      <ElFormItem :label="$t('module.platform_model_models_id')" prop="id" class="is-required" :rules="generateInputRules({ message: 'form_input_placeholder' })">
-        <ElInput v-model="model_form.id" size="large" disabled :placeholder="$t('form_input_placeholder')" />
-      </ElFormItem>
-      <ElFormItem :label="$t('module.platform_model_models_name')" prop="name">
-        <ElInput v-model="model_form.name" size="large" :placeholder="$t('form_input_placeholder')" />
-      </ElFormItem>
-    </ElForm>
-    <template #footer>
-      <div class="pb-4 flex items-center justify-center">
-        <ElButton
-          class="w-24 h-9" type="primary" :loading="submitting || loading"
-          @click="() => onSave({ action: 'model_edit' })"
-        >
-          {{ $t('action_save') }}
-        </ElButton>
-        <ElButton
-          class="w-24 h-9 text-[#1D1E1F]" type="info" plain
-          @click="() => close({ action: 'model_edit' })"
-        >
-          {{ $t('action_cancel')
-          }}
-        </ElButton>
-      </div>
-    </template>
-  </ElDialog>
-</template>
-
-<style scoped>
-</style>
+<style scoped></style>

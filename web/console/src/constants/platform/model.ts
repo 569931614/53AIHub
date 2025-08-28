@@ -1,9 +1,10 @@
 import { MODEL_VALUES } from './config'
+
 export interface FormConfig {
   label: string
   prop: string
   type: 'input' | 'select' | 'url'
-  rules?: any[]
+  rules?: unknown[]
   placeholder?: string
   required?: boolean
   size?: 'large' | 'default' | 'small'
@@ -121,6 +122,32 @@ export const AZURE_FORM_CONFIG: FormConfig[] = [
   },
 ]
 
+export const BAILIAN_FORM_CONFIG: FormConfig[] = [
+  {
+    label: 'module.platform_model_api_endpoint',
+    prop: 'base_url',
+    type: 'url',
+    placeholder: 'module.platform_model_api_endpoint_placeholder',
+    required: true,
+    default: 'https://example.com',
+  },
+  {
+    label: 'module.platform_tool_api_key',
+    prop: 'key',
+    type: 'input',
+    placeholder: 'module.platform_tool_api_key_placeholder',
+    required: true,
+  },
+  {
+    label: 'module.platform_model_models',
+    prop: 'models',
+    type: 'select',
+    multiple: true,
+    placeholder: 'module.platform_model_models_placeholder',
+    required: true,
+  },
+]
+
 // 获取表单配置
 export const getFormConfig = (channel_type: number): FormConfig[] => {
   switch (channel_type) {
@@ -132,6 +159,10 @@ export const getFormConfig = (channel_type: number): FormConfig[] => {
       return AZURE_FORM_CONFIG
     case MODEL_VALUES.SILICONFLOW:
       return SILICONFLOW_FORM_CONFIG
+    case MODEL_VALUES.BAILIAN:
+    case MODEL_VALUES.VOLCENGINE:
+    case MODEL_VALUES.QIANFAN:
+      return BAILIAN_FORM_CONFIG
     default:
       return []
   }

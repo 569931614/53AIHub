@@ -42,37 +42,20 @@ export const dateRangeOptions: { value: string; label: string }[] = [
 export const getRangeStartEndDates = (time_type: string): { start?: string; end?: string } => {
   const options = {}
   let start = ''
-  if (time_type === '0')
-    start = moment.getCurrentDate('YYYY-MM-DD 00:01')
-
-  else if (time_type === '1')
-    start = moment.getLastTimeAsDay(7, 'YYYY-MM-DD hh:mm')
-
-  else if (time_type === '2')
-    start = moment.getLastTimeAsWeek(4, 'YYYY-MM-DD hh:mm')
-
-  else if (time_type === '3')
-    start = moment.getLastTimeAsMonth(3, 'YYYY-MM-DD hh:mm')
-
-  else if (time_type === '4')
-    start = moment.getLastTimeAsMonth(12, 'YYYY-MM-DD hh:mm')
-
-  else if (time_type === '5')
-    start = moment.getCurrentMonth('YYYY-MM-DD hh:mm')
-
-  else if (time_type === '6')
-    start = moment.getCurrentQuarter('YYYY-MM-DD hh:mm')
-
-  else if (time_type === '7')
-    start = moment.getCurrentYeaer('YYYY-MM-DD hh:mm')
-  else if (time_type === '8')
-    start = '2022-01-01 00:00'
+  if (time_type === '0') start = moment.getCurrentDate('YYYY-MM-DD 00:01')
+  else if (time_type === '1') start = moment.getLastTimeAsDay(7, 'YYYY-MM-DD hh:mm')
+  else if (time_type === '2') start = moment.getLastTimeAsWeek(4, 'YYYY-MM-DD hh:mm')
+  else if (time_type === '3') start = moment.getLastTimeAsMonth(3, 'YYYY-MM-DD hh:mm')
+  else if (time_type === '4') start = moment.getLastTimeAsMonth(12, 'YYYY-MM-DD hh:mm')
+  else if (time_type === '5') start = moment.getCurrentMonth('YYYY-MM-DD hh:mm')
+  else if (time_type === '6') start = moment.getCurrentQuarter('YYYY-MM-DD hh:mm')
+  else if (time_type === '7') start = moment.getCurrentYeaer('YYYY-MM-DD hh:mm')
+  else if (time_type === '8') start = '2022-01-01 00:00'
 
   if (start) {
     options.start = start
     options.end = moment.getCurrentDate('YYYY-MM-DD hh:mm')
-  }
-  else {
+  } else {
     options.start = null
     options.end = null
   }

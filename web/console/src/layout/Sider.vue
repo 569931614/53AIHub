@@ -164,6 +164,9 @@
               <el-menu-item index="/statistics">
                 {{ $t('module.statistics') }}
               </el-menu-item>
+              <el-menu-item v-if="isOpLocalEnv" index="/SMTP">
+                {{ $t('module.SMTP') }}
+              </el-menu-item>
               <!-- #endif -->
               <el-menu-item v-if="!isWorkEnv" index="/system-log">
                 {{ $t('module.system_log') }}

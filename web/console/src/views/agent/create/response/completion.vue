@@ -19,6 +19,7 @@
           {{ errorMessage }}
         </p>
       </div>
+
       <div v-else-if="showResult">
         <x-bubble-assistant class="!mb-0" :streaming="loading"></x-bubble-assistant>
         <template v-for="item in result" :key="item.id">
@@ -26,12 +27,20 @@
             <!-- <x-md-renderer :content="result" /> -->
             <x-bubble-assistant v-if="item.type === 'markdown'" :content="item.value" :streaming="loading">
             </x-bubble-assistant>
+            <div v-else-if="item.type === 'image'" class="overflow-hidden">
+              <img :src="item.value" class="max-w-full h-auto object-contain rounded" />
+            </div>
+            <div v-else-if="item.type === 'video'" class="overflow-hidden">
+              <video :src="item.value" controls class="max-w-full h-auto"></video>
+            </div>
+            <audio v-else-if="item.type === 'audio'" :src="item.value" controls class="max-w-full"></audio>
             <p v-else class="whitespace-pre-wrap break-all">
               {{ item.value }}
             </p>
           </div>
         </template>
       </div>
+
       <template v-else>
         <el-form ref="formRef" :model="form" label-position="top" require-asterisk-position="right" @submit.prevent>
           <template v-for="(item, index) in form" :key="item.id">
@@ -339,7 +348,19 @@ const abortController = ref<AbortController | null>(null)
 const validator = (item: FormItem) => {
   return (rule: any, value: any, callback: any) => {
     if (item.required) {
-      const hasVal = Array.isArray(item.value) ? item.value.some(item => item.trim()) : item.value.trim()
+      let hasVal = false
+
+      if (item.type === 'file') {
+        // 处理文件类型
+        hasVal = Array.isArray(item.value) && item.value.length > 0
+      } else if (Array.isArray(item.value)) {
+        // 处理数组类型
+        hasVal = item.value.some(val => val && String(val).trim().length > 0)
+      } else {
+        // 处理字符串类型
+        hasVal = item.value && String(item.value).trim().length > 0
+      }
+
       if (hasVal) callback()
       else callback(new Error(`请添加${item.label}`))
     } else {
@@ -415,7 +436,7 @@ const getInputs = () => {
     return result
   }, {})
   Object.keys(inputs).forEach(key => {
-    if (inputs[key] === '') {
+    if (!inputs[key]) {
       delete inputs[key]
     }
   })

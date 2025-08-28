@@ -10,8 +10,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// autoAssignCozeStudioProvider automatically assigns a ProviderID for CozeStudio channels
+// when ProviderID is 0 in the request
+func autoAssignCozeStudioProvider(channel *model.Channel) error {
+	// Check if this is a CozeStudio channel and ProviderID is 0
+	if channel.Type == model.ChannelApiTypeCozeStudio && channel.ProviderID == 0 {
+		// Get the first Provider with ProviderTypeCozeStudio for this enterprise
+		provider, err := model.GetFirstProviderByEidAndProviderType(channel.Eid, model.ProviderTypeCozeStudio)
+		if err != nil {
+			return err
+		}
+		// Assign the ProviderID to the channel
+		channel.ProviderID = provider.ProviderID
+	}
+	return nil
+}
+
 type ChannelRequest struct {
 	Type         int     `json:"type" example:"1"`
+	ModelType    *int    `json:"model_type" example:"1"`
 	Key          string  `json:"key" example:"channel_key"`
 	Name         string  `json:"name" example:"channel_name"`
 	Models       string  `json:"models" example:"gpt-3.5-turbo"`
@@ -43,6 +60,7 @@ func CreateChannel(c *gin.Context) {
 	channel := model.Channel{
 		Eid:          config.GetEID(c),
 		Type:         req.Type,
+		ModelType:    1,
 		Key:          req.Key,
 		Name:         req.Name,
 		Models:       req.Models,
@@ -59,10 +77,22 @@ func CreateChannel(c *gin.Context) {
 	if req.ProviderID != nil {
 		channel.ProviderID = *req.ProviderID
 	}
+	// Set ModelType: default 1; if provided and valid (1,2,3), use it
+	if req.ModelType != nil {
+		if model.IsValidModelType(*req.ModelType) {
+			channel.ModelType = *req.ModelType
+		}
+	}
 
 	channel.Models = model.ProcessModelNames(req.Models, channel.Type)
 	if channel.Models == "" {
 		c.JSON(http.StatusBadRequest, model.ParamError.ToResponse(strings.NewReader("models is required")))
+		return
+	}
+
+	// Auto assign ProviderID for CozeStudio channels if needed
+	if err := autoAssignCozeStudioProvider(&channel); err != nil {
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
 		return
 	}
 
@@ -142,6 +172,18 @@ func UpdateChannel(c *gin.Context) {
 	if req.ProviderID != nil {
 		channel.ProviderID = *req.ProviderID
 	}
+	// Update ModelType if provided and valid (1,2,3)
+	if req.ModelType != nil {
+		if model.IsValidModelType(*req.ModelType) {
+			channel.ModelType = *req.ModelType
+		}
+	}
+
+	// Auto assign ProviderID for CozeStudio channels if needed
+	if err := autoAssignCozeStudioProvider(channel); err != nil {
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
+		return
+	}
 
 	if err := model.UpdateChannel(channel); err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
@@ -184,6 +226,7 @@ func DeleteChannel(c *gin.Context) {
 // @Security BearerAuth
 // @Param provider_id query int false "Provider ID, 0 means platform-added keys, non-zero means get channels from other platforms" example:"0"
 // @Param channel_types query string false "Channel type filters" example:"1,1001,1002"
+// @Param model_type query string false "Model type filters: 1=LLM,2=Embedding,3=Rerank; comma-separated supported; 0 or empty means no filter" example:"1,3"
 // @Success 200 {object} model.CommonResponse
 // @Router /api/channels [get]
 func GetChannels(c *gin.Context) {
@@ -197,7 +240,21 @@ func GetChannels(c *gin.Context) {
 			}
 		}
 	}
-	channels, err := model.GetChannelsByEidAndParams(config.GetEID(c), providerId, channelTypes)
+
+	modelTypesStr := c.Query("model_type")
+	var modelTypes []int
+	if modelTypesStr != "" {
+		for _, s := range strings.Split(modelTypesStr, ",") {
+			if t, err := strconv.Atoi(strings.TrimSpace(s)); err == nil {
+				// Only accept defined model types; 0 or invalid values mean no filter
+				if model.IsValidModelType(t) {
+					modelTypes = append(modelTypes, t)
+				}
+			}
+		}
+	}
+
+	channels, err := model.GetChannelsByEidAndParams(config.GetEID(c), providerId, channelTypes, modelTypes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
 		return

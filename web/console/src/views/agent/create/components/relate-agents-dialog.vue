@@ -6,7 +6,12 @@
           <GroupTabs v-model="filterForm.group_id" :group-type="GROUP_TYPE.AGENT" @change="refresh" />
         </div>
         <div class="flex-none flex-center gap-3 ml-8">
-          <Search v-model="filterForm.keyword" placeholder="module.ai_toolbox_search_placeholder" />
+          <Search
+            v-model="filterForm.keyword"
+            placeholder="module.ai_toolbox_search_placeholder"
+            @change="refresh"
+            @input="refresh"
+          />
         </div>
       </div>
 
@@ -47,14 +52,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive } from 'vue';
 
-import RelateAgentsSetting from './relate-agents-setting.vue'
+import RelateAgentsSetting from './relate-agents-setting.vue';
 
-import agentApi from '@/api/modules/agent'
+import agentApi from '@/api/modules/agent';
 
-import { GROUP_TYPE } from '@/constants/group'
-import { BACKEND_AGENT_TYPE } from '@/constants/platform/config'
+import { GROUP_TYPE } from '@/constants/group';
 
 const emit = defineEmits<{
   (e: 'select', item: Agent.State): void

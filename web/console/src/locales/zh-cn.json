@@ -220,6 +220,17 @@
     "statistics_textarea_label_1_example": "请输入JS代码……\n例如\n<script>console.log('hello world')</script>\n或\n<script src=\"xxx\"></script>",
     "statistics_textarea_label_2": "CSS代码",
     "statistics_textarea_label_2_example": "请输入CSS代码",
+    "SMTP": "注册与登录",
+    "SMTP_email_log": "邮箱注册/登录",
+    "SMTP_mobile_log": "手机注册/登录",
+    "SMTP_server": "SMTP服务器",
+    "SMTP_port": "SMTP端口",
+    "SMTP_email_account": "邮箱账号",
+    "SMTP_email_password": "邮箱密码",
+    "SMTP_receiver_email": "收件人邮箱",
+    "SMTP_addresser_email": "发件人邮箱",
+    "SMTP_send_email": "发送测试邮件",
+    "SMTP_openTLS": "启用TLS",
     "site_decoration": "站点装修",
     "template_style": "模板风格",
     "banner_diagram": "Banner图"
@@ -733,6 +744,7 @@
   "form_select_placeholder": "请选择",
   "form_upload_placeholder": "请上传",
   "form_link_validator": "请输入正确格式的链接地址",
+  "form_account_validator": "账号不能包含空格符号",
   "form_mobile_validator": "请输入正确格式的手机号码",
   "form_email_validator": "请输入正确格式的邮箱地址",
   "form_mobile_or_email_validator": "请输入正确格式的手机号码或邮箱地址",
@@ -742,6 +754,9 @@
   "form_path_same_tip": "已存在相同路径地址, 请重新输入",
   "form_image_validator": "请上传正确格式的图片",
   "form_variable_validator": "变量名只能包含字母、数字和下划线，且不能以数字开头",
+  "form_port_validator": "端口只能是数字",
+  "form_account_exit": "该共享账号已存在",
+  "form_delete_confirm": "确定删除该共享账号吗？",
   "form_hide_logo": "隐藏技术支持Logo",
   "enterprise_edition": "企业版",
   "image_cropper": "图片裁剪",
@@ -776,6 +791,7 @@
   "verification_code": "验证码",
   "verification_code_placeholder": "请输入验证码",
   "get_verification_code": "获取验证码",
+  "shared_account": "共享账号",
   "subscription": {
     "title": "订阅服务",
     "end_at": "服务期限",
@@ -803,6 +819,7 @@
   "dialogue_record": "对话记录",
   "user_info": "用户信息",
   "avatar": "头像",
+  "remark": "备注",
   "login_password": "登录密码",
   "bind_account": "已绑定的账户",
   "mobile_v2": "手机号",
@@ -1050,7 +1067,8 @@
     "operation": "操作",
     "more": "更多",
     "cancel": "取消",
-    "setting": "设置"
+    "setting": "设置",
+    "confirm": "确认"
   },
   "default_links": {
     "default_setting": "默认设置",
@@ -1137,5 +1155,13 @@
     "image": "图片",
     "audio": "音频",
     "video": "视频"
+  },
+  "model": {
+    "reason": "推理模型",
+    "embedding": "向量嵌入模型",
+    "rerank": "rerank模型"
+  },
+  "platform": {
+    "model_tip": "{total}个{ type }模型"
   }
 }

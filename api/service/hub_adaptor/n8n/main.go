@@ -162,27 +162,3 @@ func ValidateN8nWorkflowID(workflowID string) bool {
 	// 简单验证：包含连字符且长度合理
 	return strings.Contains(workflowID, "-") && len(workflowID) >= 10
 }
-
-// GetN8nWorkflowURL 构造 n8n 工作流 URL
-func GetN8nWorkflowURL(baseURL, workflowID string) string {
-	baseURL = strings.TrimSuffix(baseURL, "/")
-
-	// 智能判断使用 webhook 还是 webhook-test
-	var webhookPath string
-	if strings.HasSuffix(baseURL, "/webhook-test") {
-		// 如果 baseURL 以 /webhook-test 结尾，使用 test 模式
-		webhookPath = "webhook-test"
-		// 去掉 baseURL 中的 /webhook-test 部分
-		baseURL = strings.TrimSuffix(baseURL, "/webhook-test")
-	} else if strings.HasSuffix(baseURL, "/webhook") {
-		// 如果 baseURL 以 /webhook 结尾，使用正式模式
-		webhookPath = "webhook"
-		// 去掉 baseURL 中的 /webhook 部分
-		baseURL = strings.TrimSuffix(baseURL, "/webhook")
-	} else {
-		// 默认使用正式模式
-		webhookPath = "webhook"
-	}
-
-	return fmt.Sprintf("%s/%s/%s", baseURL, webhookPath, workflowID)
-}

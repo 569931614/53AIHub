@@ -165,7 +165,7 @@ watch(
     if (config.seo_title) setMeta({ key: 'title', value: config.seo_title })
     if (config.seo_keywords) setMeta({ key: 'keywords', value: config.seo_keywords })
     if (config.seo_description) setMeta({ key: 'description', value: config.seo_description })
-    if (path.includes('/chat')) {
+    if (path.includes('/chat') || path.includes('/agent')) {
       activeMenuItem.value = navigationStore.navigations[1].menu_path
     } else if (path.includes('/prompt')) {
       activeMenuItem.value = navigationStore.navigations[2].menu_path

@@ -93,7 +93,7 @@
     </el-form-item>
 
     <el-form-item
-      v-if="!isOpLocalEnv"
+      v-if="!isOpLocalEnv || (isOpLocalEnv && openSMTP)"
       :label="$t('form.verify_code')"
       prop="verify_code"
       :rules="[register_way === 'email' ? emailCodeRule : codeRule]"
@@ -179,6 +179,15 @@ import useEnv from '@/hooks/useEnv'
 
 import userApi from '@/api/modules/user'
 import commonApi from '@/api/modules/common'
+
+withDefaults(
+  defineProps<{
+    openSMTP: boolean
+  }>(),
+  {
+    openSMTP: false
+  }
+)
 
 const formRef = ref<FormInstance>()
 

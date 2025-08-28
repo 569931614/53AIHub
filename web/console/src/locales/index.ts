@@ -10,7 +10,12 @@ import elementJaLocale from 'element-plus/es/locale/lang/ja'
 import zhLocale from './zh-cn.json'
 import twLocale from './zh-tw.json'
 import enLocale from './en.json'
+import enLocaleV2 from './en-v2.json'
 import jaLocale from './ja.json'
+import { assign } from '@/utils'
+
+assign(enLocale, enLocaleV2)
+
 // 语言配置整合
 const messages = {
   'zh-cn': {

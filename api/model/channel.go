@@ -33,6 +33,22 @@ const (
 	ChannelApiTypeCozeStudio = 1010
 )
 
+// Model types for channels
+const (
+	ModelTypeLLM       = 1
+	ModelTypeEmbedding = 2
+	ModelTypeRerank    = 3
+)
+
+// IsValidModelType returns true if t is one of the defined model types.
+func IsValidModelType(t int) bool {
+	switch t {
+	case ModelTypeLLM, ModelTypeEmbedding, ModelTypeRerank:
+		return true
+	}
+	return false
+}
+
 // ChannelDescription 渠道描述结构体
 type ChannelDescription struct {
 	Key   string `json:"key"`
@@ -78,6 +94,7 @@ type Channel struct {
 	ChannelID          int64   `json:"channel_id" gorm:"primaryKey;autoIncrement"`
 	Eid                int64   `json:"eid" gorm:"not null;index" example:"1"`
 	Type               int     `json:"type" gorm:"default:0"`
+	ModelType          int     `json:"model_type" gorm:"not null;default:1"`
 	Key                string  `json:"key" gorm:"type:text"`
 	Weight             *uint   `json:"weight" gorm:"default:0"`
 	Name               string  `json:"name" gorm:"not null" example:"channel_name"`
@@ -124,7 +141,7 @@ func GetChannelsByEid(eid int64) ([]Channel, error) {
 // GetChannelsByEidAndProviderId gets a list of channels by enterprise ID and provider ID
 // If providerId is 0, get channels added by the platform itself (providerId=0)
 // If providerId is not 0, get channels from other platforms
-func GetChannelsByEidAndParams(eid int64, providerId int64, channelTypes []int) ([]Channel, error) {
+func GetChannelsByEidAndParams(eid int64, providerId int64, channelTypes []int, modelTypes []int) ([]Channel, error) {
 	var channels []Channel
 	var err error
 
@@ -138,6 +155,10 @@ func GetChannelsByEidAndParams(eid int64, providerId int64, channelTypes []int) 
 
 	if len(channelTypes) > 0 {
 		db = db.Where("type IN (?)", channelTypes)
+	}
+
+	if len(modelTypes) > 0 {
+		db = db.Where("model_type IN (?)", modelTypes)
 	}
 
 	err = db.Find(&channels).Error

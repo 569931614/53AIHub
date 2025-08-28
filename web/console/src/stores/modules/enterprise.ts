@@ -21,28 +21,28 @@ const default_version = {
   version: 1,
   features: {
     agent: {
-      max: 5
+      max: 5,
     },
     independent_domain: {
-      max: 0
+      max: 0,
     },
     internal_user: {
-      max: 0
+      max: 0,
     },
     registered_user: {
-      max: 100
-    }
+      max: 100,
+    },
   },
   disabled_features:
     '{"agent":{"max":5,"name":"智能体"},"independent_domain":{"max":0,"name":"独立域名"},"internal_user":{"max":0,"name":"内部用户"},"registered_user":{"max":100,"name":"注册用户"}}',
   created_time: 1751594448404,
-  updated_time: 1751594448404
+  updated_time: 1751594448404,
 }
 
 export const useEnterpriseStore = defineStore('enterprise-store', {
   state: () => ({
     info: deepCopy({}),
-    version: deepCopy(default_version)
+    version: deepCopy(default_version),
   }),
   actions: {
     getFormatEnterpriseData(data = {}) {
@@ -51,7 +51,7 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
       data.enterprise = data.enterprise || {}
       data = {
         ...data,
-        ...data.enterprise
+        ...data.enterprise,
       }
       data.eid = data.eid || data.apply.eid || data.enterprise.id || ''
       data.logo = data.logo || data.enterprise.logo || getDefaultLogo()
@@ -69,7 +69,7 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
       data.expired_time = data.expired_time
         ? getSimpleDateFormatString({
             date: new Date(data.expired_time),
-            format: 'YYYY-MM-DD hh:mm'
+            format: 'YYYY-MM-DD hh:mm',
           })
         : ''
       data.created_time = data.enterprise.created_time || 0
@@ -90,33 +90,33 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
     //  (-1 for all) 0:待审核 1:已通过 2:已拒绝
     async loadListData({
       data: { status = -1, offset = 0, limit = 500 },
-      hideError = false
+      hideError = false,
     }: {
       data: { status: -1 | 0 | 1 | 2; offset: number; limit: number }
       hideError: boolean
     }) {
       const { data: { count = 0, details = [] } = {} } = await api.enterprise.saas_list({
         data: { status, offset, limit },
-        hideError
+        hideError,
       })
       const list = details.map((item = {}) => this.getFormatEnterpriseData(item))
       return { count, list }
     },
     async apply({
       data: { contact_name = '', enterprise_name = '', email = '', phone = '' },
-      hideError = false
+      hideError = false,
     }: {
       data: { contact_name: string; enterprise_name: string; email: string; phone: string }
       hideError: boolean
     }) {
       return api.enterprise.saas_apply({
         data: { contact_name, enterprise_name, email, phone },
-        hideError
+        hideError,
       })
     },
     async loadDetailData({
       data: { eid = '' },
-      hideError = false
+      hideError = false,
     }: {
       data: { eid: string }
       hideError: boolean
@@ -125,7 +125,7 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
         await api.enterprise.saas_detail({
           data: { eid },
           extra_headers: { 'X-My-Id': eid },
-          hideError
+          hideError,
         })
       if (access_token) {
         const user_store = useUserStore()
@@ -163,7 +163,7 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
       return data
     },
     async update({
-      data = {}
+      data = {},
     }: {
       data: {
         eid: string
@@ -185,7 +185,7 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
         template_type: 'loose',
         domain: '',
         slogan: '',
-        ...data
+        ...data,
       }
       return api.enterprise.update({ data })
     },
@@ -196,6 +196,58 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
         .catch(() => ({ data: {} }))
       data.features = data.disabled_features ? JSON.parse(data.disabled_features) : {}
       this.version = data
-    }
-  }
+    },
+    async loadSMTPInfo() {
+      const { data = {} } = await api.enterprise.smtp_config()
+      return data
+    },
+    async loadSMTPDetail({ data: { type = '' } }) {
+      const { data } = await api.enterprise.smtp_detail({
+        data: { type },
+      })
+      return data
+    },
+    async saveSMTPInfo({
+      data = {},
+    }: {
+      data: {
+        content: string
+        enabled: boolean
+        type: 'smtp' | 'mobile'
+      }
+    }) {
+      data = {
+        content: '',
+        enabled: true,
+        type: 'smtp',
+        ...data,
+      }
+      return api.enterprise.smtp_save({ data })
+    },
+    async sendTestEmail({
+      data = {},
+    }: {
+      data: {
+        from: string
+        host: string
+        is_ssl: boolean
+        password: string
+        port: number
+        to: string
+        username: string
+      }
+    }) {
+      data = {
+        from: '',
+        host: '',
+        is_ssl: true,
+        password: '',
+        port: '',
+        to: '',
+        username: '',
+        ...data,
+      }
+      return api.enterprise.smtp_send({ data })
+    },
+  },
 })

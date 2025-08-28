@@ -1,6 +1,6 @@
 <template>
   <Layout class="px-[60px] py-8">
-    <Header back :title="agentFormStore.form_data.name" class="mb-5">
+    <Header back :title="title || agentFormStore.form_data.name" class="mb-5">
       <template #title_prefix>
         <el-image v-if="agentFormStore.form_data.logo" :src="agentFormStore.form_data.logo" class="w-8 rounded" />
         <div v-else class="size-8 rounded" />
@@ -51,7 +51,7 @@
         <DialogueRecordView type="agent" :related-id="agentFormStore.agent_id" />
       </el-tab-pane>
     </el-tabs>
-    <InfoDrawer ref="infoDrawerRef" @success="eventBus.emit('agent-change')" />
+    <InfoDrawer ref="infoDrawerRef" @success="eventBus.emit('agent-change')" @cancel="handleCancel" />
   </Layout>
 </template>
 
@@ -84,6 +84,7 @@ const infoDrawerRef = ref<InstanceType<typeof InfoDrawer>>()
 
 const active_tab_name = ref('first')
 const channelConfig = ref({})
+const title = ref()
 provide('channelConfig', channelConfig)
 
 const onSave = async ({ restart = false } = {}) => {
@@ -114,6 +115,7 @@ const onSave = async ({ restart = false } = {}) => {
 }
 
 const handleEdit = () => {
+  title.value = agentFormStore.form_data.name
   if (infoDrawerRef.value) {
     infoDrawerRef.value.open({
       agent_type: agentFormStore.agent_type,
@@ -126,8 +128,18 @@ const handleEdit = () => {
   }
 }
 
+const handleCancel = () => {
+  agentFormStore.form_data.name = title.value
+}
+
+const handleAgentChange = () => {
+  // 重新加载数据以更新标题
+  title.value = agentFormStore.form_data.name
+}
+
 onMounted(async () => {
   agentFormStore.resetState()
+  eventBus.on('agent-change', handleAgentChange)
   await nextTick()
   const agent_type = (route.query.type as string) || 'prompt'
   agentFormStore.is_new = route.query.is_new === 'true'

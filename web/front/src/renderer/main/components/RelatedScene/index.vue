@@ -7,10 +7,10 @@
       <SvgIcon name="related" stroke="true" class="text-secondary" />
       <p class="pl-2 text-sm text-secondary">{{ $t('chat.completion_scene') }}</p>
     </div>
-    <div class="flex flex-wrap gap-3 items-center justify-center mt-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3" :class="[isWorkflow ? 'p-4' : '']">
       <template v-for="item in currentAgent.settings_obj?.relate_agents" :key="item.scene">
         <div
-          class="w-[255px] p-4 flex items-center gap-2 border rounded-md cursor-pointer hover:shadow-lg transition-all duration-300"
+          class="p-4 flex items-center gap-2 border rounded-md cursor-pointer hover:shadow-lg transition-all duration-300"
           @click="handleNextAgent(item)"
         >
           <img class="size-10 rounded-md" :src="item.logo" />

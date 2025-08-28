@@ -19,6 +19,70 @@ export {
   type ChannelType,
 }
 
+export interface ModelOption {
+  categories: Array<{
+    model_count: number
+    model_type: number
+    models: Array<{
+      model_id: string
+      model_name: string
+    }>
+  }>
+  platform_id: string
+  platform_name: string
+  channel_type: number
+  can_multiple: boolean
+}
+
+export interface ChannelRequestData {
+  base_url: string
+  config: string
+  key: string
+  custom_config: string
+  model_mapping: string
+  model_type: number
+  models: string
+  name: string
+  other: string
+  priority: number
+  provider_id: number
+  type: number
+  weight: number
+}
+
+export interface RawChannelItem {
+  channel_id: number
+  eid: number
+  type: number
+  key: string
+  weight: number
+  name: string
+  models: string
+  config: string
+  custom_config: string
+  other: string
+  model_mapping: string
+  priority: number
+  base_url: string
+  used_quota: number
+  status: number
+  balance: number
+  balance_updated_time: number
+  test_time: number
+  response_time: number
+  provider_id: number
+  created_time: number
+  updated_time: number
+}
+
+export interface ChannelItem extends RawChannelItem {
+  icon: string
+  custom_config: Record<string, any>
+  config: Record<string, any>
+  channel_id: number
+  models: string[]
+}
+
 interface ModelConfig {
   id: string
   vision?: boolean
@@ -40,6 +104,12 @@ interface ChannelData {
   config?: any
   models?: string[] | string
   model_options?: Array<{
+    value: string
+    label: string
+    icon: string
+    vision: boolean
+  }>
+  modelOptions?: Array<{
     value: string
     label: string
     icon: string
@@ -130,6 +200,12 @@ export const getFormatChannelData = (data: ChannelData = {}) => {
   const model_alias_map = (data.config?.model_alias_map || {}) as Record<string, string>
 
   data.model_options = (Array.isArray(data.models) ? data.models : []).map(value => ({
+    value,
+    label: model_alias_map[value] || MODEL_ALIAS_MAP.get(value) || value,
+    icon: getModelIcon({ value }) || data.icon || '',
+    vision: ALL_MODEL_LIST.find(item => item.id === value)?.vision || false,
+  }))
+  data.modelOptions = (Array.isArray(data.models) ? data.models : []).map(value => ({
     value,
     label: model_alias_map[value] || MODEL_ALIAS_MAP.get(value) || value,
     icon: getModelIcon({ value }) || data.icon || '',
@@ -298,6 +374,26 @@ export const channelApi = {
   async chat53aiWorkflowList() {
     const { data = [] } = await service.get('/api/53ai/workflows').catch(handleError)
     return data
+  },
+  models: {
+    config(): Promise<ModelOption[]> {
+      return service
+        .get('/api/channels/km/models')
+        .then(res => res.data.platforms)
+        .catch(handleError)
+    },
+  },
+  listv2(): Promise<RawChannelItem[]> {
+    return service
+      .get('/api/channels')
+      .then(res => res.data)
+      .catch(handleError)
+  },
+  create(data: ChannelRequestData) {
+    return service.post('/api/channels', data).catch(handleError)
+  },
+  update(channel_id: number, data: ChannelRequestData) {
+    return service.put(`/api/channels/${channel_id}`, data).catch(handleError)
   },
 }
 

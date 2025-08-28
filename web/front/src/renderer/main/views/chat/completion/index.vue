@@ -301,6 +301,13 @@
               <div class="text-sm text-[#1D1E1F] mt-2">
                 <!-- <x-md-renderer :content="result" /> -->
                 <x-bubble-assistant v-if="item.type === 'markdown'" :content="item.value" :streaming="loading"></x-bubble-assistant>
+                <div v-else-if="item.type === 'image'" class="overflow-hidden">
+                  <img :src="item.value" class="max-w-full h-auto object-contain rounded" />
+                </div>
+                <div v-else-if="item.type === 'video'" class="overflow-hidden">
+                  <video :src="item.value" controls class="max-w-full h-auto"></video>
+                </div>
+                <audio v-else-if="item.type === 'audio'" :src="item.value" controls class="max-w-full"></audio>
                 <p v-else class="whitespace-pre-wrap break-all">
                   {{ item.value }}
                 </p>

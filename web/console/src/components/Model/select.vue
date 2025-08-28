@@ -15,7 +15,8 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { View } from '@element-plus/icons-vue'
-import { loadModelList } from './index'
+import { loadModels } from './index'
+import { ModelUseType } from '@/constants/platform/config'
 
 // 定义类型，兼容 SelectPlus 组件的接口
 interface ModelOption {
@@ -32,9 +33,15 @@ interface ChannelOption {
   options: ModelOption[]
 }
 
-const props = defineProps<{
-  modelValue: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: string
+    type?: ModelUseType
+  }>(),
+  {
+    modelValue: '',
+  }
+)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
@@ -55,32 +62,17 @@ const onModelChange = (result: { value: string; option: any }) => {
 
 const loadChannelOptions = async () => {
   try {
-    const modelList = await loadModelList()
+    const modelList = await loadModels(props.type)
 
-    options.value = modelList.reduce((acc: ChannelOption[], item: any) => {
-      const channelOption: ChannelOption = {
-        value: item.channel_type,
-        label: window.$t(item.label),
-        icon: (window as any).$getRealPath({ url: `/images/platform/${item.icon}.png` }),
-        options: [],
+    options.value = modelList
+    // 如果modelValue 有值， 需要找modelList是否存在， 如果存在， 则设置value = ''
+    if (props.modelValue) {
+      const options = modelList.map(item => item.options).flat()
+      const option = options.find(item => item.value === props.modelValue)
+      if (!option) {
+        value.value = ''
       }
-
-      const modelOptions = (item.model_options || []).map((option: any = {}) => ({
-        value: `${item.channel_id}_${option.value}`,
-        label: option.label,
-        icon: (window as any).$getRealPath({ url: `/images/platform/${option.icon}.png` }),
-        vision: option.vision || false,
-      }))
-
-      const existingModel = acc.find(res => res.value === item.channel_type)
-      if (existingModel) {
-        existingModel.options.push(...modelOptions)
-      } else {
-        channelOption.options = modelOptions
-        acc.push(channelOption)
-      }
-      return acc
-    }, [])
+    }
   } catch (error) {
     console.error('Failed to load channel options:', error)
   }
