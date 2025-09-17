@@ -172,7 +172,7 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
         language: string
         description: string
         layout_type: 'portal' | 'doubao' | 'mita' | 'kimi' | 'independent'
-        template_type: 'loose' | 'center'
+        template_type: string
       }
     }) {
       data = {
@@ -182,9 +182,9 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
         language: 'zh-cn',
         description: '',
         layout_type: 'portal',
-        template_type: 'loose',
         domain: '',
         slogan: '',
+        template_type: '',
         ...data,
       }
       return api.enterprise.update({ data })

@@ -50,21 +50,11 @@
       >
         <el-form-item :label="$t('form.account')" prop="username">
           <el-input
-            v-if="isOpLocalEnv"
             v-model="form.username"
             v-trim
             size="large"
-            class="input_style"
+            class="el-input--main"
             :placeholder="$t('form.input_placeholder') + $t('form.email')"
-            clearable
-          />
-          <el-input
-            v-else
-            v-model="form.username"
-            v-trim
-            size="large"
-            class="input_style"
-            :placeholder="$t('form.input_placeholder') + $t('form.account_alias') + '/' + $t('form.email')"
             clearable
           />
         </el-form-item>
@@ -76,7 +66,7 @@
             v-trim
             show-password
             size="large"
-            class="input_style"
+            class="el-input--main"
             :placeholder="$t('form.input_placeholder') + $t('form.password')"
           ></el-input>
         </el-form-item>
@@ -97,7 +87,7 @@
             v-model="form.username"
             v-trim
             size="large"
-            class="input_style"
+            class="el-input--main"
             :placeholder="$t('form.input_placeholder') + $t('form.account_alias')"
             clearable
           />
@@ -109,7 +99,7 @@
               v-model="form.verify_code"
               v-trim
               size="large"
-              class="input_style no-right-radius w-80"
+              class="el-input--main no-right-radius w-80"
               :placeholder="$t('form.input_placeholder') + $t('form.verify_code')"
             ></el-input>
             <el-button
@@ -234,7 +224,7 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/modules/user'
 import { useAgentStore } from '@/stores/modules/agent'
 import { useEnterpriseStore } from '@/stores/modules/enterprise'
-import { getMobileRules, getAccountOrEmailRules, getPasswordRules } from '@/utils/form-rules'
+import { getMobileRules, getAccountOrEmailRules, getEmailRules, getPasswordRules } from '@/utils/form-rules'
 import SvgIcon from '@/components/SvgIcon.vue'
 
 import useEnv from '@/hooks/useEnv'
@@ -290,7 +280,7 @@ const form = reactive({
 
 const rules = computed(() => {
   return {
-    username: [login_way.value === LOGIN_WAY.password_login ? getAccountOrEmailRules() : getMobileRules()],
+    username: [isOpLocalEnv.value ? getEmailRules() : login_way.value === LOGIN_WAY.password_login ? getAccountOrEmailRules() : getMobileRules()],
     password: [getPasswordRules()],
     verify_code: [codeRule]
   }
@@ -390,6 +380,7 @@ const handleSubmit = () => {
           })
           ElMessage.success(window.$t('status.login_success'))
           agentStore.loadAgentList()
+          isVisible.value = false
         } else {
           ElMessage.warning(window.$t('status.not_found_account'))
         }
@@ -521,12 +512,6 @@ onMounted(() => {
   top: 18px;
   right: 16px;
   font-size: 18px;
-}
-
-.input_style {
-  --el-input-bg-color: #f5f5f5;
-  --el-input-border-color: transparent;
-  --el-input-height: 44px;
 }
 
 .no-right-radius .el-input__wrapper {

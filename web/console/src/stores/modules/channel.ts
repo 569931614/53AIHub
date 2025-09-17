@@ -31,9 +31,5 @@ export const useChannelStore = defineStore('channel-store', {
       const list = await channelApi.cozeWorkspaceList()
       return list
     },
-    async loadCozeBotList({ params: { workspace_id } }: { params: { workspace_id: number } }) {
-      const list = await channelApi.cozeBotList({ params: { workspace_id } })
-      return list
-    },
   },
 })

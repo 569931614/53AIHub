@@ -89,7 +89,9 @@ export default {
     collapse_more: '收起更多',
     or: '或',
     later: '稍后再说',
-    allow_to: '已复制提示词内容，访问"{name}"站点'
+    allow_to: '已复制提示词内容，访问"{name}"站点',
+    ai_generated: '内容由AI生成，仅供参考',
+    back_home: '返回站点首页'
   },
 
   // 状态提示
@@ -163,7 +165,10 @@ export default {
     view_more: '查看更多',
     click_upload: '点击上传',
     view: '查看',
-    delete: '删除'
+    delete: '删除',
+    select_all: '全选',
+    unselect_all: '取消全选',
+    copy_link: '复制链接'
   },
 
   file: {
@@ -201,6 +206,7 @@ export default {
     remark: '备注',
     account_alias: '手机',
     password: '密码',
+    password_placeholder: '请输入密码',
     email: '邮箱',
     new_email: '新邮箱',
     mobile: '手机号',
@@ -222,6 +228,7 @@ export default {
     password_length: '密码长度必须在 8-20 个字符之间',
     password_format: '密码必须包含大小写字母和数字',
     password_not_match: '两次输入的密码不一致',
+    password_no_chinese: '密码不能包含中文',
     change: '修改',
     existing_mobile: '该手机号已注册，请使用该账号登录。',
     existing_email: '该邮箱已注册，请使用该账号登录。'
@@ -306,7 +313,11 @@ export default {
     completion_completed: '已完成深度思考',
     completion_thinking: '深度思考中...',
     completion_scene: '关联场景：',
-    completion_next_action: '关联场景：下一步操作'
+    completion_next_action: '关联场景：下一步操作',
+
+    not_found_url: '无法找到URL，请检查智能体是否设置正确',
+    completion_share_link: '对话链接已复制，快去分享吧~',
+    no_available_agent_desc: '很遗憾，你要访问的智能体已不存在，去看看其他有趣的智能体吧～'
   },
 
   // 知识库相关
@@ -359,7 +370,8 @@ export default {
     direct_access: '直接访问',
     click_access: '点击访问',
     account_access: '共享账号',
-    account_text: '以下是共享的账号与密码，仅限本人使用'
+    account_text: '以下是共享的账号与密码，仅限本人使用',
+    account_text2: '您可以复制下列共享的账号密码，访问目标站点'
   },
 
   // 空间相关
@@ -537,5 +549,31 @@ export default {
   },
   table: {
     footer_text: '共有 {total} 条'
+  },
+  guide: {
+    title: '欢迎使用53AI Hub',
+    description: '当前为初始化环节，需录入站点等基础信息，用于系统基础配置搭建',
+    website_info: '站点信息',
+    website_setting: '账号设置',
+    website_success: '完成安装',
+    website_info_name: '站点名称',
+    website_info_name_placeholder: '请输入站点的名称',
+    website_info_logo: '站点logo',
+    website_info_logo_placeholder: '请上传Logo',
+    website_info_logo_change: '修改',
+    website_info_logo_upload: '上传',
+    website_info_logo_tip:
+      '请上传1:1比例的方形Logo（建议尺寸：512×512px）支持PNG/JPG格式，文件大小不超过2MB',
+    website_style: '站点风格',
+    website_info_language: '默认语言',
+    website: '网站风格',
+    software: '软件风格',
+    init_success: '初始化成功！',
+    jump_now: '立即跳转',
+    jump_tip: '将在 {count} 秒后自动跳转到首页...',
+    next: '下一步',
+    init: '初始化',
+    confirm_password: '确认密码',
+    confirm_password_placeholder: '请再次确认密码'
   }
 }

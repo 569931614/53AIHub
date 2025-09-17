@@ -248,8 +248,8 @@ export const useAgentFormStore = defineStore('agent-form-store', {
         return item
       })
       if (this.coze_workspace_options.length && !this.form_data.custom_config.coze_workspace_id) {
+        this.form_data.custom_config.coze_workspace_id = this.coze_workspace_options[0].value
       }
-      this.form_data.custom_config.coze_workspace_id = this.coze_workspace_options[0].value
       if (
         !this.coze_workspace_options.find(
           item => item.value === this.form_data.custom_config.coze_workspace_id
@@ -461,7 +461,7 @@ export const useAgentFormStore = defineStore('agent-form-store', {
         //   data.model =
 
         case AGENT_TYPE.COZE_WORKFLOW_CN:
-          const params = new URLSearchParams(custom_config.coze_bot_url)
+          const params = new URLSearchParams(custom_config.coze_bot_url.split('?')[1])
           data.model = `workflow-${params.get('workflow_id')}` || ''
           break
 

@@ -2,8 +2,11 @@ import type { App } from 'vue'
 import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { checkPermission } from '@/utils/permission'
+import useEnv from '@/hooks/useEnv'
 
 import { useUserStore } from '@/stores/modules/user'
+
+const { isOpLocalEnv } = useEnv()
 
 const routes: RouteRecordRaw[] = [
   {
@@ -36,6 +39,7 @@ const routes: RouteRecordRaw[] = [
         name: 'Profile',
         component: () => import('@/views/profile/index.vue'),
         meta: {
+          pass: true,
           auth: !window.$isElectron
         }
       },
@@ -59,6 +63,7 @@ const routes: RouteRecordRaw[] = [
         name: 'Order',
         component: () => import('@/views/order/index.vue'),
         meta: {
+          pass: true,
           auth: true
         }
       }
@@ -108,6 +113,20 @@ const routes: RouteRecordRaw[] = [
   },
 
   {
+    path: '/share/chat',
+    name: 'ShareChat',
+    component: () => import('@/views/share/chat.vue'),
+    meta: {
+      pass: true
+    }
+  },
+  {
+    path: '/guide',
+    name: 'Guide',
+    component: () => import('@/components/Lead/index.vue')
+  },
+
+  {
     path: '/svglist',
     name: 'Svg',
     component: () => import('@/views/svglist/index.vue')
@@ -139,6 +158,29 @@ export const router = createRouter({
 
 // 添加路由守卫
 router.beforeEach(async (to, _from, next) => {
+  const isGuidePath = to.path === '/guide'
+  if (isGuidePath && _from.path === '/') {
+    next()
+    return
+  }
+
+  if (isOpLocalEnv.value) {
+    try {
+      const { system } = await import('@/api/modules/system')
+      const res = await system.init()
+      if (!res.data && !isGuidePath) {
+        next('/guide')
+        return
+      }
+      if (res.data && isGuidePath) {
+        next('/index')
+        return
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   const userStore = useUserStore()
   const isLoggedIn = localStorage.getItem('access_token') // 或其他判断用户是否登录的方法
   if (isLoggedIn) {
@@ -148,10 +190,9 @@ router.beforeEach(async (to, _from, next) => {
   const { useEnterpriseStore } = await import('@/stores/modules/enterprise')
   const enterpriseStore = useEnterpriseStore()
   if (!enterpriseStore.display_name) await enterpriseStore.loadInfo()
-  const { style_type } = enterpriseStore.template_style_info
-  const isWebsite = style_type === 'website'
+  const isWebsite = !enterpriseStore.isSoftStyle
   const isIndex = to.path.startsWith('/index')
-  const isPass = ['/profile', '/order'].includes(to.path)
+  const isPass = to.meta.pass
 
   if (isPass || window.electron) {
   } else if (isIndex && !isWebsite) {

@@ -11,7 +11,6 @@
     :key="currentConv.virtual_id || currentConv.conversation_id"
     class="flex-1"
     :hide-menu-header="hideMenuHeader"
-    :hide-footer="hideFooter"
     :show-recommend="showRecommend"
     :use-case-fixed="useCaseFixed"
     :show-history="showHistory"
@@ -112,6 +111,9 @@ defineExpose({
   },
   hideUseCase: () => {
     chatRef.value?.hideUseCase()
+  },
+  showShare: () => {
+    chatRef.value?.showShare()
   }
 })
 </script>

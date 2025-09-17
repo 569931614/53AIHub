@@ -93,7 +93,6 @@ type UpdateEnterpriseRequest struct {
 // @Tags Enterprise
 // @Accept json
 // @Produce json
-// @Security BearerAuth
 // @Param id  path  int  true  "Enterprise ID"
 // @Param request body UpdateEnterpriseRequest true "Enterprise information"
 // @Success 200 {object} model.CommonResponse
@@ -105,7 +104,23 @@ func UpdateEnterprise(c *gin.Context) {
 		return
 	}
 
-	currentEid := config.GetEID(c)
+	var currentEid int64
+	user, err := model.GetLoginUser(c)
+	if err == nil {
+		if user.Role < model.RoleAdminUser {
+			c.JSON(http.StatusForbidden, model.ForbiddenError.ToResponse(err))
+			return
+		}
+		currentEid = config.GetEID(c)
+	} else {
+		// 兼容初始化
+		if err = model.DB.Where("eid = ?", 1).First(&user).Error; err != nil && err.Error() == "record not found" {
+			currentEid = 1
+		} else {
+			c.JSON(http.StatusForbidden, model.ForbiddenError.ToResponse(err))
+			return
+		}
+	}
 	if currentEid <= 0 {
 		c.JSON(http.StatusBadRequest, model.ParamError.ToResponse(nil))
 		return
@@ -139,6 +154,7 @@ func UpdateEnterprise(c *gin.Context) {
 	enterprise.Type = req.Type
 	enterprise.Language = req.Language
 	enterprise.Description = req.Description
+	enterprise.TemplateType = req.TemplateType
 
 	if err := enterprise.Update(); err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
@@ -331,14 +347,14 @@ func GetHomePage(c *gin.Context) {
 	}
 
 	var aiLinkCount int64
-	if err := model.DB.Model(&model.AILink{}).Where("eid =?", eid).Count(&aiLinkCount).Error; err!= nil {
+	if err := model.DB.Model(&model.AILink{}).Where("eid =?", eid).Count(&aiLinkCount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
 		return
 	}
 
 	c.JSON(http.StatusOK, model.Success.ToResponse(HomePageResponse{
-		AgentCount: agentCount,
-		UserCount:  userCount,
+		AgentCount:  agentCount,
+		UserCount:   userCount,
 		PromptCount: promptCount,
 		AILinkCount: aiLinkCount,
 	}))

@@ -63,6 +63,8 @@ export const RESPONSE_MESSAGE_MAP = new Map([
     'unauthorized: username or password is incorrect',
     'response_message.username_or_password_is_incorrect',
   ],
+  ['auth failed: record not found', 'response_message.user_not_found'],
+  ['invalid or expired verification code', 'response_code.verification_code_error'],
   ['operate too fast', 'response_message.operate_too_fast'],
 ])
 

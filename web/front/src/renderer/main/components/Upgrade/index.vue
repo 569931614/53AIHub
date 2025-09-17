@@ -22,7 +22,7 @@
           <div class="flex-1 relative overflow-y-hidden">
             <ElButton
               v-show="scroll_left > 0"
-              class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-[#F5F2F2] text-[#333] !border-none !outline-none"
+              class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-[#53585f] text-[#fff] !border-none !outline-none"
               :icon="ArrowLeft"
               size="default"
               circle
@@ -162,7 +162,7 @@
             </ElScrollbar>
             <ElButton
               v-show="scroll_left_limit > 0 && scroll_left < scroll_left_limit"
-              class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-[#F5F2F2] text-[#333] !border-none !outline-none"
+              class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-[#53585f] text-[#fff] !border-none !outline-none"
               :icon="ArrowRight"
               size="default"
               circle

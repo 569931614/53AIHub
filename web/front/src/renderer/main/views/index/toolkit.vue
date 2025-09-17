@@ -1,7 +1,9 @@
 <template>
-  <ToolboxView class="pb-10" hide-header hide-footer :sticky-offset="70" />
+  <div class="w-11/12 lg:w-4/5 mx-auto pb-10">
+    <ToolkitGroupList :sticky-offset="70" />
+  </div>
 </template>
 
 <script setup lang="ts">
-import ToolboxView from '@/views/toolkit/index.vue'
+import ToolkitGroupList from '@/views/toolkit/components/group-list.vue'
 </script>

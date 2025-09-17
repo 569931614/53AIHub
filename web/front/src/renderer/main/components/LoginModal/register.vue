@@ -67,7 +67,7 @@
         v-model="form.username"
         v-trim
         size="large"
-        class="input_style"
+        class="el-input--main"
         :placeholder="$t('form.input_placeholder') + $t('form.mobile')"
         clearable
         onblur="onUsernameBlur"
@@ -77,7 +77,7 @@
         v-model="form.username"
         v-trim
         size="large"
-        class="input_style"
+        class="el-input--main"
         :placeholder="$t('form.input_placeholder') + $t('form.email')"
         clearable
         onblur="onUsernameBlur"
@@ -103,7 +103,7 @@
           v-model="form.verify_code"
           v-trim
           size="large"
-          class="input_style w-80 no-right-radius flex-1"
+          class="el-input--main w-80 no-right-radius flex-1"
           :placeholder="$t('form.input_placeholder') + $t('form.verify_code')"
         ></el-input>
         <el-button
@@ -138,7 +138,7 @@
         v-trim
         show-password
         size="large"
-        class="input_style"
+        class="el-input--main"
         :placeholder="$t('form.input_placeholder') + $t('form.password')"
       ></el-input>
     </el-form-item>

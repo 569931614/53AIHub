@@ -70,7 +70,7 @@
         <template v-if="searchAgents.length">
           <div class="h-9 flex items-center gap-2">
             <div class="text-sm text-[#939499] max-w-[100px] truncate">
-              {{ navigationStore.promptNavigation.name || $t('module.agent') }}
+              {{ $t('module.agent') }}
             </div>
             <div class="flex-1 h-px bg-[#E6E8EB]"></div>
           </div>
@@ -184,42 +184,36 @@
           </div>
         </div>
         <div class="flex flex-col px-2 max-md:hidden">
-          <router-link
-            :to="{ name: 'Agent' }"
-            class="h-9 px-2 rounded-md flex items-center gap-0.5 mt-1.5 cursor-pointer text-[#4F5052] hover:bg-[#ECEDEE]"
-            :class="[route.name === 'Agent' ? 'bg-[#ECEDEE]' : '']"
-          >
-            <div class="size-7 flex-center">
-              <svg-icon size="18" name="app" stroke></svg-icon>
-            </div>
-            <p class="flex-1 text-base text-[#000000] truncate">
-              {{ navigationStore.agentNavigation.name || $t('module.agent') }}
-            </p>
-          </router-link>
-          <router-link
-            :to="{ name: 'Prompt' }"
-            class="h-9 px-2 rounded-md flex items-center gap-0.5 mt-1.5 cursor-pointer text-[#4F5052] hover:bg-[#ECEDEE]"
-            :class="[route.name === 'Prompt' ? 'bg-[#ECEDEE]' : '']"
-          >
-            <div class="size-7 flex-center">
-              <svg-icon size="18" name="prompt" stroke></svg-icon>
-            </div>
-            <p class="flex-1 text-base text-[#000000] truncate">
-              {{ navigationStore.promptNavigation.name || $t('module.prompt') }}
-            </p>
-          </router-link>
-          <router-link
-            :to="{ name: 'Toolkit' }"
-            class="h-9 px-2 rounded-md flex items-center gap-0.5 mt-1.5 cursor-pointer text-primary hover:bg-[#ECEDEE]"
-            :class="[route.name === 'Toolkit' ? 'bg-[#ECEDEE]' : '']"
-          >
-            <div class="size-7 flex-center">
-              <svg-icon size="18" name="toolkit" stroke></svg-icon>
-            </div>
-            <p class="flex-1 text-base truncate">
-              {{ navigationStore.toolkitNavigation.name || $t('module.toolbox') }}
-            </p>
-          </router-link>
+          <template v-for="(item, index) in navigationStore.navigations" :key="index">
+            <router-link
+              v-if="item.type !== NAVIGATION_TYPE.EXTERNAL"
+              :to="{ path: item.jump_path }"
+              class="h-9 px-2 rounded-md flex items-center gap-0.5 mt-1.5 cursor-pointer text-[#4F5052] hover:bg-[#ECEDEE]"
+              :class="[route.path === item.jump_path ? 'bg-[#ECEDEE]' : '']"
+            >
+              <div class="size-7 flex-center">
+                <svg-icon size="18" :name="item.icon || 'app'" stroke></svg-icon>
+              </div>
+              <p class="flex-1 text-base text-[#000000] truncate">
+                {{ item.name }}
+              </p>
+            </router-link>
+
+            <a
+              v-else
+              :href="item.jump_path"
+              :target="item.target === NAVIGATION_TARGET.BLANK ? '_blank' : '_self'"
+              rel="noopener noreferrer"
+              class="h-9 px-2 rounded-md flex items-center gap-0.5 mt-1.5 cursor-pointer text-[#4F5052] hover:bg-[#ECEDEE]"
+            >
+              <div class="size-7 flex-center">
+                <svg-icon size="18" :name="item.icon || 'app'" stroke></svg-icon>
+              </div>
+              <p class="flex-1 text-base text-[#000000] truncate">
+                {{ item.name }}
+              </p>
+            </a>
+          </template>
           <div
             v-if="$isElectron"
             href="http://ziroom.hub.53ai.com/space"
@@ -253,6 +247,11 @@
           </div>
         </template>
         <div v-show="state.showHistory" class="px-3">
+          <div v-if="state.isLoadingConv" class="flex-center mt-2">
+            <el-icon class="animate-spin">
+              <Loading></Loading>
+            </el-icon>
+          </div>
           <template v-for="conv in groupedConversations" :key="conv.key">
             <template v-if="conv.list.length">
               <div class="h-[30px] pl-6 pr-2 flex items-center text-xs text-[#9A9A9A] mb-1">
@@ -302,7 +301,7 @@
       </div>
     </div>
     <div v-if="userStore.is_login" class="h-14 px-4 flex items-center gap-2 border-t border-b md:hidden" @click="handleJumpToProfile">
-      <el-image class="flex-none size-6" :src="userStore.info.avatar" alt="用户头像"></el-image>
+      <el-image class="flex-none size-6" :src="userStore.info.avatar" :alt="userStore.info.nickname"></el-image>
       <div class="flex-1 flex items-center overflow-hidden">
         <p class="text-sm text-primary font-medium truncate">{{ userStore.info.nickname }}</p>
         <div
@@ -343,7 +342,7 @@
 
 <script setup lang="ts">
 import { reactive, onMounted, onUnmounted, computed, ref, nextTick, watchEffect } from 'vue'
-import { ArrowUp, ArrowDown, Search, ArrowRight, MoreFilled } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Search, ArrowRight, MoreFilled, Loading } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 import { onClickOutside } from '@vueuse/core'
 import { router } from '@/router'
@@ -357,6 +356,7 @@ import { useConversationStore } from '@/stores/modules/conversation'
 import { useEnterpriseStore } from '@/stores/modules/enterprise'
 import { useLinksStore } from '@/stores/modules/links'
 import { useNavigationStore } from '@/stores/modules/navigation'
+import { NAVIGATION_TYPE, NAVIGATION_TARGET } from '@/constants/navigation'
 
 import { EVENT_NAMES } from '@/constants/events'
 import eventBus from '@/utils/event-bus'
@@ -375,6 +375,8 @@ const SHOW_USUAL_AGENT_LEN = 4
 const siderRef = ref()
 const upgradeRef = ref()
 
+const userGroups = userStore.info.group_ids || []
+
 const state = reactive({
   keyword: '',
   sidebarCollapsed: false,
@@ -383,7 +385,8 @@ const state = reactive({
   showConversations: true,
   editVisible: false,
   showHistory: false,
-  expandHistory: false
+  expandHistory: false,
+  isLoadingConv: true
 })
 
 const convForm = reactive({
@@ -412,7 +415,11 @@ const searchUsualAgents = computed(() => {
 const searchAgents = computed(() => {
   if (!state.keyword) return []
   return agentStore.agentList
-    .filter((agent) => agent.name.toLowerCase().includes(state.keyword.toLowerCase()))
+    .filter((item) => {
+      const keywordMatch = item.name.toLowerCase().includes(state.keyword.toLowerCase())
+      const hasCommonGroup = item.user_group_ids?.some((groupId) => userGroups.includes(groupId))
+      return keywordMatch && hasCommonGroup
+    })
     .map((item) => {
       return {
         ...item,
@@ -423,7 +430,11 @@ const searchAgents = computed(() => {
 const searchToolBox = computed(() => {
   if (!state.keyword) return []
   return linksStore.links
-    .filter((item) => item.name.toLowerCase().includes(state.keyword.toLowerCase()))
+    .filter((item) => {
+      const keywordMatch = item.name.toLowerCase().includes(state.keyword.toLowerCase())
+      const hasCommonGroup = item.user_group_ids?.some((groupId) => userGroups.includes(groupId))
+      return keywordMatch && hasCommonGroup
+    })
     .map((item) => {
       return {
         ...item,
@@ -544,15 +555,21 @@ const handleJumpToProfile = () => {
   globalStore.toggleSider()
 }
 
+const loadConversations = () => {
+  state.isLoadingConv = true
+  convStore.loadConversations().finally(() => {
+    state.isLoadingConv = false
+  })
+}
+
 onMounted(async () => {
   agentStore.loadCategorys()
   navigationStore.fetchNavigations()
 
   await agentStore.loadAgentList()
-
-  convStore.loadConversations()
+  loadConversations()
   eventBus.on(EVENT_NAMES.LOGIN_SUCCESS, () => {
-    convStore.loadConversations()
+    loadConversations()
   })
   convStore.updateAgents(agentStore.agentList)
   nextTick(() => {

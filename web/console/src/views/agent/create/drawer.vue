@@ -57,9 +57,7 @@ provide('channelConfig', channelConfig)
 const loadBotsList = () => {
   switch (agentType.value) {
     case AGENT_TYPES.COZE_AGENT_CN:
-      agentFormStore.loadCozeWorkspaceOptions().then(() => {
-        agentFormStore.loadCozeBotOptions(agentFormStore.form_data.custom_config.coze_workspace_id)
-      })
+      agentFormStore.loadCozeWorkspaceOptions()
       break
     case AGENT_TYPES.APP_BUILDER:
       agentFormStore.loadAppBuilderBotOptions()

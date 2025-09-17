@@ -120,9 +120,6 @@
             </template>
             <div class="flex items-center gap-1.5 cursor-pointer max-md:hidden">
               <el-image class="size-[26px] rounded-full" :src="userStore.info.avatar"></el-image>
-              <el-icon color="#A4A4AD">
-                <ArrowDown />
-              </el-icon>
             </div>
           </el-tooltip>
           <el-button v-else type="primary" @click="handleLogin">{{ $t('action.login') }}</el-button>
@@ -141,7 +138,7 @@ import { onMounted, ref, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import HubUiX from 'hub-ui-x'
-import { ArrowDown, ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
 
 import Upgrade from '@/components/Upgrade/index.vue'
 

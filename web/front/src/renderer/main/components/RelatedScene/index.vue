@@ -43,7 +43,7 @@ interface OutputField {
 
 const props = withDefaults(
   defineProps<{
-    isWorkflow: boolean
+    isWorkflow?: boolean
     // 应用型需要传数组，对话型传字符串
     output: OutputField[] | string
   }>(),

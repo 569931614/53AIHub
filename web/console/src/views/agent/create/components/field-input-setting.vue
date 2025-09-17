@@ -200,7 +200,7 @@ import { Delete } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { generateInputRules } from '@/utils/form-rule'
 import { generateRandomId } from '@/utils'
-import { inputTypeList, outputTypeList } from '@/constants/agent'
+import { inputTypeList, outputTypeList, outputDefaultField } from '@/constants/agent'
 
 const props = defineProps<{
   type: 'input' | 'output'
@@ -213,23 +213,10 @@ const emit = defineEmits<{
 
 const formRef = ref<FormInstance>()
 const visible = ref(false)
+
 const widgetForm = ref<Agent.Field>({
-  id: '',
-  variable: '',
-  label: '',
-  type: 'text',
-  desc: '',
-  required: false,
-  max_length: 0,
-  show_word_limit: false,
-  options: [],
-  date_format: '',
-  multiple: false,
-  is_system: false,
-  file_type: 'all',
+  ...outputDefaultField,
   file_accept: ['doc', 'docx', 'pdf', 'xlsx', 'csv', 'txt', 'png', 'jpg', 'bmp', 'md', 'tiff', 'html'],
-  file_limit: 1,
-  file_size: 30,
 })
 
 const typeList = computed(() => {

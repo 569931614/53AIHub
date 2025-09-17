@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="//res.wx.qq.com/connect/zh_CN/htmledition/js/wxLogin.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.png" />
+    <title>Wescrm OAuth Login</title>
+  </head>
+  <body>
+    <div style="position: relative; width: 100vw; height: 100vh">
+      <div class="loading-spinner-box">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">授权中...</div>
+      </div>
+    </div>
+    <script>
+      var parentWindow = (window.parent && window.parent[0]) || window.parent
+      var url_params = new URLSearchParams(window.location.search)
+      var wechat_oauth_code = url_params.get('code')
+      var appid = url_params.get('appid')
+      var suiteid = url_params.get('suiteid')
+      var state = url_params.get('state')
+      var api = decodeURIComponent(url_params.get('api') || '')
+      var redirect_url = decodeURIComponent(url_params.get('redirect_url') || '')
+      if (wechat_oauth_code) {
+        api = api || `https://${suiteid === '53aihub' ? 'agenthubdev.53ai.com/api/saas/wechat/redirect' : 'apircdev.ibos.cn/wescrm/wechat/redirect'}`
+        redirect_url = redirect_url || `${window.location.origin}${window.location.pathname}?state=${state}`
+        const wechat_redirect_url = `${api}?appid=${appid}&suiteid=${suiteid}&code=${wechat_oauth_code}&redirect_url=${encodeURIComponent(redirect_url)}`
+        setTimeout(() => {
+          location.href = wechat_redirect_url
+        }, 1000)
+      }
+      var loginkey = url_params.get('loginkey')
+      if (loginkey) {
+        if (parentWindow) parentWindow.postMessage({ from: '53hub', loginkey, state }, '*')
+        window.postMessage({ from: '53hub', loginkey, state }, '*')
+      }
+      var openid = url_params.get('openid') || ''
+      var nickname = url_params.get('nickname') || ''
+      var unionid = url_params.get('unionid') || ''
+      var access_token = url_params.get('access_token') || url_params.get('accesstoken') || ''
+      if (openid) {
+        let messageData = { from: '53hub', openid, unionid, nickname, state, access_token }
+        if (parentWindow) parentWindow.postMessage(messageData, '*')
+        window.postMessage(messageData, '*')
+        sessionStorage.setItem('oauth_login_data', JSON.stringify(messageData))
+      }
+    </script>
+    <style>
+      .loading-spinner-box {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        z-index: 9999;
+        top: 0;
+        left: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0082f0;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        -webkit-animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .loading-text {
+        color: #fff;
+      }
+    </style>
+  </body>
+</html>

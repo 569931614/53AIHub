@@ -87,7 +87,9 @@ export default {
     collapse_more: '收起更多',
     or: '或',
     later: '稍後再說',
-    allow_to: '已複製提示詞內容，訪問"{name}"站點'
+    allow_to: '已複製提示詞內容，訪問"{name}"站點',
+    ai_generated: '內容由AI生成，僅供參考',
+    back_home: '返回站點首頁'
   },
 
   // 狀態提示
@@ -161,7 +163,8 @@ export default {
     view_more: '查看更多',
     click_upload: '點擊上傳',
     view: '查看',
-    delete: '刪除'
+    delete: '刪除',
+    select_all: '全選'
   },
 
   file: {
@@ -198,6 +201,7 @@ export default {
     remark: ' 備註 ',
     account_alias: '手機',
     password: '密碼',
+    password_placeholder: '請輸入密碼',
     email: '郵箱',
     new_email: '新郵箱',
     mobile: '手機號',
@@ -218,6 +222,7 @@ export default {
     password_length: '密碼長度必須在 8-20 個字符之間',
     password_format: '密碼必須包含大小寫字母和數字',
     password_not_match: '兩次輸入的密碼不一致',
+    password_no_chinese: '密碼不能包含中文',
     change: '修改',
     existing_mobile: '該手機號已註冊，請使用該帳號登入。',
     existing_email: '該郵箱已註冊，請使用該帳號登入。'
@@ -302,7 +307,11 @@ export default {
     completion_completed: '已完成深度思考',
     completion_thinking: '深度思考中...',
     completion_scene: '關聯場景：',
-    completion_next_action: '關聯場景：下一步操作'
+    completion_next_action: '關聯場景：下一步操作',
+
+    not_found_url: '無法找到 URL，請檢查智能體是否設定正確',
+    completion_share_link: '對話鏈接已複製，快去分享吧~',
+    no_available_agent_desc: '很遺憾，你要訪問的智能體已不存在，去看看其他有趣的智能體吧～'
   },
 
   // 知識庫相關
@@ -355,7 +364,8 @@ export default {
     direct_access: ' 直接訪問 ',
     click_access: ' 點擊訪問 ',
     account_access: ' 共享帳號 ',
-    account_text: ' 以下是共享的帳號與密碼，僅限本人使用'
+    account_text: ' 以下是共享的帳號與密碼，僅限本人使用',
+    account_text2: '您可以複製下列共享的帳號密碼，訪問目標站點'
   },
 
   // 空間相關
@@ -526,5 +536,31 @@ export default {
   },
   table: {
     footer_text: '共有 {total} 條'
+  },
+  guide: {
+    title: '歡迎使用53AI Hub',
+    description: '當前為初始化環節，需錄入站點等基礎資訊，用於系統基礎配置搭建',
+    website_info: '站點資訊',
+    website_setting: '帳號設置',
+    website_success: '完成安裝',
+    website_info_name: '站點名稱',
+    website_info_name_placeholder: '請輸入站點的名稱',
+    website_info_logo: '站點logo',
+    website_info_logo_placeholder: '請上傳Logo',
+    website_info_logo_change: '修改',
+    website_info_logo_upload: '上傳',
+    website_info_logo_tip:
+      '請上傳1:1比例的方形Logo（建議尺寸：512×512px）支援PNG/JPG格式，文件大小不超過2MB',
+    website_style: '站點風格',
+    website_info_language: '預設語言',
+    website: '網站風格',
+    software: '軟體風格',
+    init_success: '初始化成功！',
+    jump_now: '立即跳轉',
+    jump_tip: '將在 {count} 秒後自動跳轉到首頁...',
+    next: '下一步',
+    init: '初始化',
+    confirm_password: '確認密碼',
+    confirm_password_placeholder: '請再次確認密碼'
   }
 }

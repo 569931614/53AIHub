@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 
+	"github.com/53AI/53AIHub/common/logger"
 	"github.com/53AI/53AIHub/config"
 	"github.com/53AI/53AIHub/model"
 	"github.com/53AI/53AIHub/service"
@@ -25,17 +26,14 @@ func GetCozeAllWorkspaces(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return
 	}
-
 	ser := service.CozeService{
 		Provider: provider,
 	}
-
 	workspaces, err := ser.GetAllWorkspace()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return
 	}
-
 	c.JSON(http.StatusOK, model.Success.ToResponse(workspaces))
 }
 
@@ -62,21 +60,34 @@ func GetCozeAllBots(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return
 	}
+
 	ser := service.CozeService{
 		Provider: provider,
 	}
+
 	bots, err := ser.GetAllBot(workspaceID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return
 	}
 
-	var botIds []string
-	for _, bot := range bots {
-		botIds = append(botIds, bot.BotID)
+	// 缓存所有bot图标（使用新的基于UploadFile的方式）
+	logger.SysLogf("开始缓存 %d 个bot图标", len(bots))
+	for i := range bots {
+		if bots[i].IconURL != "" {
+			logger.SysLogf("开始缓存bot图标，bot_id: %s, icon_url: %s", bots[i].BotID, bots[i].IconURL)
+			cachedIconURL, err := ser.CacheBotIconWithUploadFile(bots[i].BotID, bots[i].IconURL, eid)
+			if err != nil {
+				// 如果缓存失败，记录日志但继续执行
+				logger.SysLogf("缓存bot图标失败，bot_id: %s, error: %v", bots[i].BotID, err)
+				// 不中断整个流程
+				continue
+			}
+			// 使用缓存的图标URL
+			logger.SysLogf("成功缓存bot图标，bot_id: %s, cached_url: %s", bots[i].BotID, cachedIconURL)
+			bots[i].IconURL = cachedIconURL
+		}
 	}
-
-	ser.UpdateCozeChannel(botIds)
 
 	c.JSON(http.StatusOK, model.Success.ToResponse(bots))
 }

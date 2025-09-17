@@ -291,6 +291,7 @@ const emailVisible = ref(false)
 const reset_Password_Visible = ref(false)
 const change_Mobile_Visible = ref(false)
 const openSMTP = ref(false)
+const originHistory = ref()
 
 const handleClose = () => {
   passwordRef.value?.resetForm?.()
@@ -344,6 +345,7 @@ const handleUnbindWechat = async ({ confirm = false } = {}) => {
 const bindWechatVisible = ref(false)
 const handleBindWechat = () => {
   bindWechatVisible.value = true
+  originHistory.value = window.history.length
 }
 const qrcodeRender = ref(true)
 const handleOauthSuccess = async (data: any) => {
@@ -355,6 +357,11 @@ const handleOauthSuccess = async (data: any) => {
   })
   ElMessage.success(window.$t(userStore.info.openid ? 'profile.change_success' : 'profile.bind_success'))
   bindWechatVisible.value = false
+
+  const backStep = originHistory.value - window.history.length
+  if (backStep !== 0) {
+    window.history.go(backStep)
+  }
 }
 
 const loadSMTP = async () => {

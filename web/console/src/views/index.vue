@@ -10,10 +10,10 @@
       v-loading="loading"
       class="flex-1 overflow-y-auto flex bg-white mt-4 py-[67px] box-border px-[76px] rounded-lg"
     >
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
         <div class="flex items-center gap-4">
           <img class="h-[70px] object-contain" :src="enterpriseInfo.logo" alt="" />
-          <h3 class="text-2xl text-[#1D1E1F] font-semibold">
+          <h3 class="text-2xl text-[#1D1E1F] font-semibold truncate">
             {{ enterpriseInfo.name }}
           </h3>
           <SvgIcon

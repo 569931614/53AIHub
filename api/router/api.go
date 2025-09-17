@@ -20,7 +20,7 @@ func SetApiRouter(router *gin.Engine) {
 		enterpriseRoute.GET("/current", controller.GetCurrentEnterprise)
 
 		enterpriseRoute.GET("/:id", middleware.UserTokenAuth(model.RoleAdminUser), controller.GetEnterprise)
-		enterpriseRoute.PUT("/:id", middleware.UserTokenAuth(model.RoleAdminUser), controller.UpdateEnterprise)
+		enterpriseRoute.PUT("/:id", controller.UpdateEnterprise)
 		enterpriseRoute.PATCH("/:id", middleware.UserTokenAuth(model.RoleAdminUser), controller.UpdateEnterpriseAttribute)
 		enterpriseRoute.DELETE("/:id", middleware.UserTokenAuth(model.RoleAdminUser), controller.DeleteEnterprise)
 		enterpriseRoute.POST("", middleware.UserTokenAuth(model.RoleAdminUser), controller.CreateEnterprise)
@@ -43,9 +43,11 @@ func SetApiRouter(router *gin.Engine) {
 	{
 		commonRoute.POST("/register", controller.PasswordRegister)
 		commonRoute.POST("/login", controller.Login)
+		commonRoute.POST("/logout", middleware.UserTokenAuth(model.RoleGuestUser), controller.Logout)
 		commonRoute.POST("/sms_login", controller.SmsLogin)
 		commonRoute.POST("/check_account", controller.CheckAccountExists)
-		commonRoute.POST("/upload", middleware.UserTokenAuth(model.RoleGuestUser), controller.Upload)
+		commonRoute.POST("/upload", controller.Upload)
+		commonRoute.GET("/is_init", controller.IsInit)
 		commonRoute.GET("/preview/*key", controller.PreviewFile)
 		commonRoute.GET("/response_codes", controller.GetAllResponseCodes)
 		commonRoute.POST("/reset_password", controller.ResetPassword)
@@ -106,11 +108,11 @@ func SetApiRouter(router *gin.Engine) {
 	aiLinkRoute := apiRouter.Group("/ai_links")
 	aiLinkRoute.GET("/current", controller.GetCurrentSiteAILinks)
 	aiLinkRoute.GET("/default", controller.GetDefaultAILinks)
+	aiLinkRoute.GET("/:id", middleware.UserTokenAuth(model.RoleCommonUser), controller.GetAILink)
 	aiLinkRoute.Use(middleware.UserTokenAuth(model.RoleAdminUser))
 	{
 		aiLinkRoute.POST("", controller.CreateAILink)
 		aiLinkRoute.GET("", controller.GetAILinks)
-		aiLinkRoute.GET("/:id", controller.GetAILink)
 		aiLinkRoute.PUT("/:id", controller.UpdateAILink)
 		aiLinkRoute.DELETE("/:id", controller.DeleteAILink)
 		aiLinkRoute.POST("/batch/sort", controller.BatchSortAILinks)
@@ -325,4 +327,14 @@ func SetApiRouter(router *gin.Engine) {
 		difyRouter.GET("/parameters/:channelId", controller.GetDifyAppParameters)
 	}
 
+	sharesAuth := apiRouter.Group("/shares")
+	sharesAuth.Use(middleware.UserTokenAuth(model.RoleGuestUser))
+	{
+		sharesAuth.POST("", controller.CreateShare)
+	}
+
+	sharesPublic := apiRouter.Group("/shares")
+	{
+		sharesPublic.GET("/:share_id", controller.GetShare)
+	}
 }

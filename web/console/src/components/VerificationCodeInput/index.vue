@@ -24,31 +24,34 @@ import { computed, onUnmounted, ref } from 'vue';
 import api from '@/apis';
 import { commonApi } from '@/api';
 
-const props = withDefaults(defineProps<{
-  account?: string
-  accountType?: 'email' | 'mobile'
-  modelValue?: string
-  bgColor?: string
-  height?: string
-  size?: 'large' | 'default' | 'small'
-  clearable?: boolean
-  disabled?: boolean
-  countdown?: number
-  maxlength?: number
-  placeholder?: string
-}>(), {
-  account: '',
-  accountType: 'mobile',
-  modelValue: '',
-  bgColor: '#F1F2F3',
-  height: '44px',
-  size: 'large',
-  clearable: true,
-  disabled: false,
-  countdown: 60,
-  maxlength: 4,
-  placeholder: 'verification_code_placeholder',
-})
+const props = withDefaults(
+  defineProps<{
+    account?: string
+    accountType?: 'email' | 'mobile'
+    modelValue?: string
+    bgColor?: string
+    height?: string
+    size?: 'large' | 'default' | 'small'
+    clearable?: boolean
+    disabled?: boolean
+    countdown?: number
+    maxlength?: number
+    placeholder?: string
+  }>(),
+  {
+    account: '',
+    accountType: 'mobile',
+    modelValue: '',
+    bgColor: '#F1F2F3',
+    height: '44px',
+    size: 'large',
+    clearable: true,
+    disabled: false,
+    countdown: 60,
+    maxlength: 4,
+    placeholder: 'verification_code_placeholder',
+  }
+)
 const emits = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
@@ -60,12 +63,13 @@ const send_disabled = computed(() => {
   return props.disabled || !props.account || send_countdown.value > 0
 })
 const real_account_type = computed(() => {
-  return props.accountType || /^(13[0-9]|14[0-9]|15[0-9]|16[0-9]|17[0-9]|18[0-9]|19[0-9])\d{8}$/.test(props.account) ? 'mobile' : 'email'
+  return props.accountType || /^(13[0-9]|14[0-9]|15[0-9]|16[0-9]|17[0-9]|18[0-9]|19[0-9])\d{8}$/.test(props.account)
+    ? 'mobile'
+    : 'email'
 })
 
 onUnmounted(() => {
-  if (timer)
-    clearInterval(timer)
+  if (timer) clearInterval(timer)
 })
 
 const onChange = (value: string) => {
@@ -98,32 +102,36 @@ const onSend = async () => {
     return
   }
 
-  await api.qyy.send_code({
-    data: {
-      mobile: props.account,
-      source: 'companyibos',
-    },
-  })
+  if (props.accountType === 'mobile') {
+    await api.qyy.send_code({
+      data: {
+        mobile: props.account,
+        source: 'companyibos',
+      },
+    })
+  } else {
+    await commonApi.sendEmailCode({ email: props.account })
+  }
   send_countdown.value = props.countdown
   ElMessage.success(window.$t('action_send_success'))
   timer = setInterval(() => {
     send_countdown.value--
-    if (send_countdown.value < 0)
-      clearInterval(timer)
+    if (send_countdown.value < 0) clearInterval(timer)
   }, 1000)
 }
 const reset = () => {
-  if (timer)
-    clearInterval(timer)
+  if (timer) clearInterval(timer)
   input_value.value = ''
   send_countdown.value = 0
 }
 const validateCode = async () => {
-  return commonApi.verifycode({
-    mobile: props.account,
-    verifycode: input_value.value,
-    type: '1',
-  }).catch(() => Promise.resolve(false))
+  return commonApi
+    .verifycode({
+      mobile: props.account,
+      verifycode: input_value.value,
+      type: '1',
+    })
+    .catch(() => Promise.resolve(false))
 }
 
 defineExpose({
@@ -134,18 +142,18 @@ defineExpose({
 
 <style scoped lang="scss">
 ::v-deep(.el-input-group__append) {
-	position: relative;
-	background-color: var(--el-input-bg-color);
+  position: relative;
+  background-color: var(--el-input-bg-color);
 }
 ::v-deep(.el-input-group__append::before) {
-	content: '';
-	position: absolute;
-	top: 50%;
-	left: 0;
-	transform: translateY(-50%);
-	display: block;
-	width: 1px;
-	height: 14px;
-	background-color: #C7C7C7;
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  display: block;
+  width: 1px;
+  height: 14px;
+  background-color: #c7c7c7;
 }
 </style>

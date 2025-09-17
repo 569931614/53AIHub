@@ -42,23 +42,24 @@ type ResponseCode int
 // Response code enumeration
 // @enum ResponseCode
 const (
-	Success                  ResponseCode = iota // 0 - Success
-	ParamError                                   // 1 - Invalid parameters
-	DBError                                      // 2 - Database operation failed
-	NetworkError                                 // 3 - Network communication error
-	SystemError                                  // 4 - Internal system error
-	AuthFailed                                   // 5 - Authentication failure
-	NotFound                                     // 6 - Resource not found
-	UnauthorizedError                            // 7 - Unauthorized access
-	FileError                                    // 8 - File operation failed
-	ForbiddenError                               // 9 - Forbidden access
-	AgentAuthError                               // 10 - Agent authentication failed
-	TokenExpiredError                            // 11 - Token expired, need to re-login
-	ChatError                                    // 12 - Chat operation failed
-	ProviderNoFoundError                         // 13 - Provider not found
-	OperateTooFast                               // 14 - Operate too fast
-	FeatureNotAvailableError                     // 15 - Feature not available
-	RecordAlreadyExists                          // 16 - Record already exists
+	Success                      ResponseCode = iota // 0 - Success
+	ParamError                                       // 1 - Invalid parameters
+	DBError                                          // 2 - Database operation failed
+	NetworkError                                     // 3 - Network communication error
+	SystemError                                      // 4 - Internal system error
+	AuthFailed                                       // 5 - Authentication failure
+	NotFound                                         // 6 - Resource not found
+	UnauthorizedError                                // 7 - Unauthorized access
+	FileError                                        // 8 - File operation failed
+	ForbiddenError                                   // 9 - Forbidden access
+	AgentAuthError                                   // 10 - Agent authentication failed
+	TokenExpiredError                                // 11 - Token expired, need to re-login
+	ChatError                                        // 12 - Chat operation failed
+	ProviderNoFoundError                             // 13 - Provider not found
+	OperateTooFast                                   // 14 - Operate too fast
+	FeatureNotAvailableError                         // 15 - Feature not available
+	RecordAlreadyExists                              // 16 - Record already exists
+	InvalidVerificationCodeError                     // 17 - 验证码错误
 )
 
 // Response code descriptions

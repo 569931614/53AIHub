@@ -135,6 +135,8 @@ const initForm = (data: any = {}) => {
   for (const schema of modelSchemas.value) {
     if (schema.type === 'select' && schema.prop === 'models') {
       form.value.models = (data.models || '').toString().split(',').filter(Boolean)
+    } else if (schema.default) {
+      form.value[schema.prop] = schema.default
     }
   }
 }
@@ -142,6 +144,7 @@ const initForm = (data: any = {}) => {
 const assignForm = (data: any = {}) => {
   if (!data.channel_id) return
   const models = Object.keys(data.custom_config).map(item => `${data.custom_config[item]}_${item}`)
+
   form.value.base_url = data.base_url
   form.value.key = data.key
   form.value.name = data.name

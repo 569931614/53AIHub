@@ -1,11 +1,21 @@
 /**
  * 表单验证规则
  */
+
+export const textValidator = ({ rule, value, callback, message } = {}) => {
+  value = (String(value) || '').trim()
+  if (!value) return callback(new Error(window.$t(message)))
+  callback()
+}
+
 export const getPasswordRules = () => {
   return {
     validator: (rule: any, value: string) => {
       if (value.length < 8 || value.length > 20) {
         return Promise.reject(window.$t('form.password_length'))
+      }
+      if (/[\u4e00-\u9fa5]/.test(value)) {
+        return Promise.reject(window.$t('form.password_no_chinese'))
       }
       return Promise.resolve()
     },
@@ -100,4 +110,18 @@ export const getRequiredRules = (message: string, trigger: string | string[] = '
     message: message || window.$t('form.input_placeholder'),
     trigger
   }
+}
+
+export const generateInputRules = ({
+  message = 'form_input_placeholder',
+  trigger = ['blur', 'change'],
+  validator = ['text']
+} = {}) => {
+  const rules = []
+  if (validator.includes('text'))
+    rules.push({
+      validator: (rule, value, callback) => textValidator({ rule, value, callback, message }),
+      trigger
+    })
+  return rules
 }

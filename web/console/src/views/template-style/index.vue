@@ -150,6 +150,7 @@ const handleSave = async () => {
     })
   ElMessage.success(window.$t('action_save_success'))
   fetchTemplateStyleData()
+  enterprise_store.loadSelfInfo()
 }
 const fetchTemplateStyleData = async () => {
   loading.value = true

@@ -1,11 +1,5 @@
 <template>
   <div class="h-full bg-[#F5F6F7] flex flex-col">
-    <!-- <div class="flex-none h-14 px-4 bg-white flex items-center gap-2">
-      <div class="size-6 rounded-md flex-center cursor-pointer hover:bg-[#ECEDEE]">
-        <el-icon><ArrowLeft /></el-icon>
-      </div>
-      <h2 class="text-base text-[#1D1E1F]">竞品分析</h2>
-    </div> -->
     <MainHeader v-if="!hideMenuHeader">
       <template #before_suffix>
         <div class="text-base text-primary line-clamp-1 max-md:flex-1 max-md:text-center" :title="currentAgent.name || ''">
@@ -16,8 +10,6 @@
         <span class="flex items-center gap-1 text-sm cursor-pointer md:hidden" @click="$router.back()">
           <svg-icon name="return" size="18" stroke></svg-icon>
         </span>
-      </template>
-      <template #after_suffix>
         <div
           v-tooltip="{ content: $t('chat.usage_guide') }"
           class="h-[26px] px-2 rounded-full flex-center gap-1.5 text-sm text-primary cursor-pointer hover:bg-[#E1E2E3]"
@@ -296,23 +288,47 @@
           ></el-empty>
 
           <template v-else>
-            <x-bubble-assistant class="!mb-0" :streaming="loading"></x-bubble-assistant>
-            <template v-for="item in result" :key="item.id">
+            <div v-for="item in result" :key="item.id">
               <div class="text-sm text-[#1D1E1F] mt-2">
                 <!-- <x-md-renderer :content="result" /> -->
                 <x-bubble-assistant v-if="item.type === 'markdown'" :content="item.value" :streaming="loading"></x-bubble-assistant>
-                <div v-else-if="item.type === 'image'" class="overflow-hidden">
-                  <img :src="item.value" class="max-w-full h-auto object-contain rounded" />
+                <div v-else-if="item.type.includes('image')" class="overflow-hidden flex flex-col gap-5">
+                  <img
+                    v-for="(src, index) in Array.isArray(item.value) ? item.value : [item.value]"
+                    :key="index"
+                    :src="src"
+                    class="max-w-full h-auto object-contain rounded"
+                  />
                 </div>
-                <div v-else-if="item.type === 'video'" class="overflow-hidden">
-                  <video :src="item.value" controls class="max-w-full h-auto"></video>
+                <div v-else-if="item.type.includes('video')" class="overflow-hidden flex flex-col gap-5">
+                  <video
+                    v-for="(src, index) in Array.isArray(item.value) ? item.value : [item.value]"
+                    :key="index"
+                    :src="getSrc(src, item.id)"
+                    controls
+                    class="max-w-full h-auto"
+                  ></video>
                 </div>
-                <audio v-else-if="item.type === 'audio'" :src="item.value" controls class="max-w-full"></audio>
-                <p v-else class="whitespace-pre-wrap break-all">
-                  {{ item.value }}
-                </p>
+                <div v-else-if="item.type.includes('audio')" class="overflow-hidden flex flex-col gap-5">
+                  <audio
+                    v-for="(src, index) in Array.isArray(item.value) ? item.value : [item.value]"
+                    :key="index"
+                    :src="getSrc(src, item.id)"
+                    controls
+                    class="max-w-full"
+                  ></audio>
+                </div>
+                <div v-else-if="item.type.includes('text')">
+                  <p
+                    v-for="(text, index) in Array.isArray(item.value) ? item.value : [item.value]"
+                    :key="index"
+                    class="whitespace-pre-wrap break-all"
+                  >
+                    {{ text }}
+                  </p>
+                </div>
               </div>
-            </template>
+            </div>
           </template>
         </div>
         <template v-if="currentAgent.settings_obj?.relate_agents?.length && showOutput && !loading">
@@ -352,7 +368,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watchEffect, nextTick } from 'vue'
-import { Download, CopyDocument, Close, Warning } from '@element-plus/icons-vue'
+import { Download, CopyDocument, Close, Warning, Loading } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 
@@ -366,6 +382,8 @@ import MainHeader from '@/layout/header.vue'
 import FileUpload from '@/components/Upload/index.vue'
 import Helper from '../helper.vue'
 import RelatedScene from '@/components/RelatedScene/index.vue'
+
+import { isUrl } from '@/utils/url'
 
 withDefaults(
   defineProps<{
@@ -402,6 +420,23 @@ const validator = (item) => {
       callback()
     }
   }
+}
+
+// 从对象中获取url
+const getSrc = (value: any, id: string) => {
+  if (typeof value === 'object' && value !== null) {
+    for (const key in value) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const val = value[key]
+        if (typeof val === 'string' && isUrl(val)) {
+          return val
+        }
+      }
+    }
+    result.value = result.value.filter((item) => item.id !== id)
+    ElMessage.error(window.$t('chat.not_found_url'))
+  }
+  return value
 }
 
 const handleFocusTag = (item) => {

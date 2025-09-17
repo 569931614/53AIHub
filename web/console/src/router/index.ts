@@ -249,11 +249,19 @@ router.back = () => {
 
 export const gotoLogin = () => {
   const { isOpLocalEnv } = useEnv()
-  let login_url = sessionStorage.getItem('from_origin') || ''
+  // let login_url = sessionStorage.getItem('from_origin') || ''
+  let login_url = ''
   if (!login_url) {
     login_url = `//${window.location.host}${window.location.search}`
-    if (/(127.0.0.1)|(localhost)|(agenthubdev.cc)|(192.168.1.\d+)|/.test(login_url))
+    if (/(127.0.0.1)|(localhost)|(agenthubdev.cc)|(192.168.1.\d+)|/.test(login_url)) {
+      // #ifndef KM
       login_url = `//${window.location.host}/console/saas-login/index.html${window.location.search}`
+      // #endif
+
+      // #ifdef KM
+      login_url = `//${window.location.host}/console/km-login/index.html${window.location.search}`
+      // #endif
+    }
   }
   if (isOpLocalEnv.value) login_url = `${window.location.origin}/#/index`
   window.location.replace(login_url)

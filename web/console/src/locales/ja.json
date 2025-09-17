@@ -231,10 +231,13 @@
     "account_placeholder": "ユーザー名を入力してください",
     "email_placeholder": "メールアドレスを入力してください",
     "mobile_placeholder": "携帯電話番号を入力してください",
-    "account_exists": "この携帯電話番号は既に登録されています。",
-    "account_no_exists": "この携帯電話番号は未登録です。",
+    "mobile_exists": "この携帯電話番号はすでに登録されています。このアカウントでログインしてください。",
+    "mobile_no_exists": "この携帯電話番号は登録されていません。先に登録してください。",
+    "email_exists": "このメールアドレスはすでに登録されています。このアカウントでログインしてください。",
+    "email_no_exists": "このメールアドレスは登録されていません。先に登録してください。",
     "password_placeholder": "パスワードを入力してください",
     "forget_password": "パスワードを忘れた？",
+    "bind_mobile_login": "携帯電話番号を紐付ける",
     "password_login": "パスワードログイン",
     "password_login_v2": "パスワードログイン",
     "mobile_login": "携帯電話番号ログイン",
@@ -257,7 +260,10 @@
     "back_to_login": "ログインに戻る",
     "has_account": "既にアカウントを持っています",
     "direct_login": "直接ログイン",
-    "select_reset_password_way": "パスワードをリセットする方法を選択してください",
+    "immediate_login": "直ちにログイン",
+    "login_by_wechat": "微信でQRコードをスキャンしてログインしてください",
+    "select_reset_password_way": "パスワードをリセットする方法を選択",
+    "select_register_way": "アカウントを登録する方法を選択",
     "email_validate": "メールアドレスを検証",
     "mobile_validate": "携帯電話番号を検証",
     "new_password": "新パスワード",
@@ -503,7 +509,7 @@
       "department_placeholder": "部門を選択してください",
       "same_member_exists_tip": "メンバーの電話番号がすでに存在します",
       "same_mobile_exists_tip": "第{index}個のメンバーの電話番号と同じです",
-      "register_to_internal_confirm": "電話番号（{mobile}）はすでに登録されています。内部ユーザーにアップグレードしますか？",
+      "register_to_internal_confirm": "電話番号 ({mobile}) はすでに登録されています。内部ユーザーにアップグレードしますか？",
       "edit_member": "メンバーを編集"
     },
     "organization": {
@@ -863,6 +869,8 @@
   "debug_preview": "デバッグプレビュー",
   "restart": "再起動",
   "start_running": "実行開始",
+  "sync_output_variable": "同期出力変数（どうきしゅつりょくへんすう）",
+  "not_found_url": "URL が見つかりません。エージェントの設定を確認してください",
   "message_input_placeholder": "メッセージを入力するか、質問を入力してください...",
   "workspace": "ワークスペース",
   "edit_agent": "エージェントを編集",
@@ -1119,6 +1127,10 @@
     "markdown": "マークダウン",
     "image": "画像",
     "audio": "オーディオ",
-    "video": "ビデオ"
+    "video": "ビデオ",
+    "array_text": "配列テキスト",
+    "array_image": "配列画像",
+    "array_audio": "配列オーディオ",
+    "array_video": "配列ビデオ"
   }
 }

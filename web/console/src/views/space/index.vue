@@ -142,7 +142,7 @@ const loadList = async () => {
   const res = await spacesApi.list({ ...filter_form }).finally(() => {
     tableLoading.value = false
   })
-  tableTotal.value = res.total
+  tableTotal.value = res.count
   tableData.value = transformSpaceList(res.spaces)
 }
 

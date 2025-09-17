@@ -1,9 +1,15 @@
 import service from '../config'
 import { handleError } from '../errorHandler'
+import useEnv from '@/hooks/useEnv'
+
+const { isOpLocalEnv } = useEnv()
 
 const userApi = {
   login(data: { username: string; password: string }) {
     return service.post('/api/login', data).catch(handleError)
+  },
+  logout() {
+    return service.post('/api/logout').catch(handleError)
   },
   sms_login(data: { mobile: string; verify_code: string }) {
     return service.post('/api/sms_login', data).catch(handleError)
@@ -30,6 +36,9 @@ const userApi = {
     return service.post('/api/register', data).catch(handleError)
   },
   reset_password(data: User.ResetPasswordForm) {
+    if (!isOpLocalEnv.value) {
+      return service.post('/api/saas/auth/reset_password', data).catch(handleError)
+    }
     return service.post('/api/reset_password', data).catch(handleError)
   },
   change_mobile(data: User.ChangeMobileForm, id: string) {

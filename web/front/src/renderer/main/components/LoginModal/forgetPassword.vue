@@ -73,14 +73,14 @@
           v-model="form.verify_code"
           v-trim
           size="large"
-          class="input_style min-w-80 no-right-radius flex-1"
+          class="input_style no-right-radius flex-1"
           :placeholder="$t('form.input_placeholder') + $t('form.verify_code')"
         ></el-input>
         <el-button
           v-if="verify_way === 'email_verify'"
           v-debounce
           :disabled="isRegister || isSending"
-          class="!bg-[#f5f5f5] border-0 h-[44px] w-29 no-left-radius"
+          class="!bg-[#f5f5f5] border-0 h-[44px] no-left-radius"
           @click.stop="handleGetCode"
         >
           <div :class="['text-sm', 'pl-5', 'border-l', 'pr-1', 'text-[#2563EB]', { 'text-[#9A9A9A]': isRegister || isSending }]">

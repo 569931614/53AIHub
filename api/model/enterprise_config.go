@@ -16,12 +16,12 @@ type EnterpriseConfig struct {
 
 const (
 	EnterpriseConfigTypeSMTP   = "smtp"
-	EnterpriseConfitTypeMobile = "mobile"
+	EnterpriseConfigTypeMobile = "mobile"
 )
 
 var EnterpriseConfigTypes = []string{
 	EnterpriseConfigTypeSMTP,
-	EnterpriseConfitTypeMobile,
+	EnterpriseConfigTypeMobile,
 }
 
 // 根据 type 获取 content 默认值
@@ -29,7 +29,7 @@ func GetEnterpriseConfigDefaultContent(configType string) (string, error) {
 	switch configType {
 	case EnterpriseConfigTypeSMTP:
 		return `{"smtp_host":"","smtp_username":"","smtp_port":"","smtp_password":"","smtp_from":"","smtp_is_ssl":true,"smtp_to":""}`, nil
-	case EnterpriseConfitTypeMobile:
+	case EnterpriseConfigTypeMobile:
 		return `{}`, nil
 	default:
 		return "", fmt.Errorf("config type %s not found", configType)
