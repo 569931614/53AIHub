@@ -15,5 +15,6 @@ declare namespace Navigation {
     content: string
     created_time: number
     updated_time: number
+    target: number
   }
 }

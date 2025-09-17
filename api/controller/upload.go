@@ -21,7 +21,6 @@ import (
 // @Accept       mpfd
 // @Produce      json
 // @Param        file  formData  file  true  "file"
-// @Security BearerAuth
 // @Success      200  {object}  model.CommonResponse{data=model.UploadFile}  "success"
 // @Router       /api/upload [post]
 func Upload(c *gin.Context) {
@@ -36,8 +35,17 @@ func Upload(c *gin.Context) {
 		return
 	}
 
-	eid := config.GetEID(c)
-	user_id := config.GetUserId(c)
+	var eid, user_id int64
+	user, err := model.GetLoginUser(c)
+	if err == nil {
+		eid = user.Eid
+		user_id = user.UserID
+	} else {
+		// 兼容用户首次没有登录，又要上传的处理
+		eid = 1
+		user_id = 1
+	}
+
 	if eid == 0 || user_id == 0 {
 		c.JSON(http.StatusBadRequest, model.AuthFailed.ToResponse(nil))
 		return

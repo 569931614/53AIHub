@@ -20,7 +20,10 @@
 .env.example merge=ours
 .env.pre-prod merge=ours
 .env.production merge=ours
+.env.km-dev merge=ours
+.env.km-prod merge=ours
 .github  merge=ours
+scripts merge=ours
 
 
 public\UEditor\ueditor.all.min.js merge=ours

@@ -4,7 +4,6 @@
     ref="uploadRef"
     :class="[hide ? 'absolute right-0 top-0' : '', full ? 'el-upload--full' : '']"
     :data="extraData"
-    :headers="headers"
     :accept="accept"
     :name="name"
     :drag="drag"
@@ -50,6 +49,7 @@ const props = withDefaults(
     disabled?: boolean
     autoUpload?: boolean
     extraData?: any
+    action?: string
   }>(),
   {
     accept: '',

@@ -127,9 +127,9 @@ export const BAILIAN_FORM_CONFIG: FormConfig[] = [
     label: 'module.platform_model_api_endpoint',
     prop: 'base_url',
     type: 'url',
-    placeholder: 'module.platform_model_api_endpoint_placeholder',
+    placeholder: 'module.platform_model_base_url_placeholder',
     required: true,
-    default: 'https://example.com',
+    // default: 'https://example.com',
   },
   {
     label: 'module.platform_tool_api_key',

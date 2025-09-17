@@ -11,8 +11,8 @@
         v-model="props.subscriptionGroup"
         type="checkbox"
         :group-type="GROUP_TYPE.USER"
-        :default-all="true"
         multiple
+        :default-all="!props.editable"
         @change="handleSubscriptionChange"
       />
     </ElFormItem>
@@ -42,10 +42,12 @@ const props = withDefaults(
   defineProps<{
     userGroup: number[]
     subscriptionGroup: number[]
+    editable: boolean
   }>(),
   {
     userGroup: () => [],
     subscriptionGroup: () => [],
+    editable: true,
   }
 )
 

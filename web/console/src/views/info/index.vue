@@ -217,7 +217,7 @@ const form = reactive({
   desc: enterprise_info.value.description || '',
   copyright: enterprise_info.value.copyright.toLowerCase() === 'true',
   website_type: enterprise_info.value.type || WEBSITE_TYPE.INDEPENDENT,
-  template_type: (enterprise_info.value.template_type !== 1 && enterprise_info.value.template_type) || 'website',
+  template_type: '',
   layout_type: (enterprise_info.value.layout_type !== 1 && enterprise_info.value.layout_type) || 'loose',
 })
 const rules = reactive({
@@ -231,16 +231,7 @@ const language_options = ref([
   { label: '英文-EN', value: 'en' },
   { label: '日文-JP', value: 'jp' },
 ])
-const template_options = ref([
-  { label: 'software_style', value: 'software' },
-  { label: 'website_style', value: 'website' },
-])
-
 const preview_url = ref('')
-
-const handleViewExample = ({ value = '' } = {}) => {
-  preview_url.value = _this.$getRealPath({ url: `/images/info/template-${value}.png` })
-}
 
 const handleWebsiteTypeChange = (value: string) => {
   if (enterprise_info.value.version === WEBSITE_VERSION.ENTERPRISE) {
@@ -312,8 +303,9 @@ watch(
     form.desc = enterprise_info.value.description || ''
     form.copyright = enterprise_info.value.copyright.toLowerCase() === 'true'
     form.website_type = enterprise_info.value.type || WEBSITE_TYPE.INDEPENDENT
-    form.template_type = (enterprise_info.value.template_type !== 1 && enterprise_info.value.template_type) || 'website'
-    if (!['software', 'website'].includes(form.template_type)) form.template_type = 'website'
+    form.template_type = enterprise_info.value.template_type || ''
+    // form.template_type = (enterprise_info.value.template_type !== 1 && enterprise_info.value.template_type) || 'website'
+    // if (!['software', 'website'].includes(form.template_type)) form.template_type = 'website'
     form.layout_type = (enterprise_info.value.layout_type !== 1 && enterprise_info.value.layout_type) || 'loose'
     if (+enterprise_info.value.eid) loadedHandler()
   },

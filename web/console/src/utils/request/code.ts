@@ -28,5 +28,9 @@ export const RESPONSE_CODE_MESSAGE_MAP = new Map([
 
 export const RESPONSE_MESSAGE_MAP = new Map([
   ['unauthorized: user not found', 'response_message.user_not_found'],
-  ['unauthorized: username or password is incorrect', 'response_message.username_or_password_is_incorrect'],
+  ['invalid or expired verification code', 'response_code.verification_code_error'],
+  [
+    'unauthorized: username or password is incorrect',
+    'response_message.username_or_password_is_incorrect',
+  ],
 ])

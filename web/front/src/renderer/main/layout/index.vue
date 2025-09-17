@@ -22,13 +22,11 @@ const route = useRoute()
 const enterpriseStore = useEnterpriseStore()
 const agentStore = useAgentStore()
 
-const isSoftware = computed(() => enterpriseStore.template_style_info.style_type === 'software')
-
 provide('mainRef', mainRef)
 
 const showSidebar = computed(() => {
   const routes = ['Chat', 'Agent', 'Toolkit', 'Prompt', 'PromptDetail', 'Profile', 'Order']
-  return routes.includes(route.name as string) && isSoftware.value
+  return routes.includes(route.name as string) && enterpriseStore.isSoftStyle
 })
 
 watch(

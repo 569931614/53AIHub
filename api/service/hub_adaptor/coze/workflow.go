@@ -228,7 +228,7 @@ func (a *WorkflowAdaptor) processFileIDString(value string) (interface{}, error)
 	}
 
 	// 根据文件类型生成对应的格式
-	var fileObject interface{}
+	var fileObject map[string]interface{}
 	if strings.HasPrefix(uploadFile.MimeType, "image/") {
 		fileObject = map[string]interface{}{
 			"type":    "image",
@@ -241,10 +241,20 @@ func (a *WorkflowAdaptor) processFileIDString(value string) (interface{}, error)
 		}
 	}
 
-	logger.SysLogf("工作流文件处理成功 - 原始ID: %d, 渠道文件ID: %s, 类型: %s",
-		fileID, fileMapping.ChannelFileID, uploadFile.MimeType)
+	// 将文件对象转换为 JSON 字符串，然后包装在数组中（Coze 工作流要求的格式）
+	fileObjectJSON, err := json.Marshal(fileObject)
+	if err != nil {
+		logger.SysErrorf("序列化文件对象失败: %v", err)
+		return value, err
+	}
 
-	return fileObject, nil
+	// 返回包含 JSON 字符串的数组格式
+	fileArray := []string{string(fileObjectJSON)}
+
+	logger.SysLogf("工作流文件处理成功 - 原始ID: %d, 渠道文件ID: %s, 类型: %s, 数组格式: %v",
+		fileID, fileMapping.ChannelFileID, uploadFile.MimeType, fileArray)
+
+	return fileArray, nil
 }
 
 func (a *WorkflowAdaptor) ConvertImageRequest(request *model.ImageRequest) (any, error) {

@@ -234,10 +234,13 @@
     "account_placeholder": "請輸入您的手機號/郵箱",
     "email_placeholder": "請輸入您的郵箱",
     "mobile_placeholder": "請輸入您的手機號",
-    "account_exists": "該手機號已註冊，請使用該賬號登錄。",
-    "account_no_exists": "該手機號未註冊，請先註冊。",
+    "mobile_exists": "該手機號已註冊，請使用該賬號登錄。",
+    "mobile_no_exists": "該手機號未註冊，請先註冊。",
+    "email_exists": "該郵箱已註冊，請使用該賬號登錄。",
+    "email_no_exists": "該郵箱未註冊，請先註冊。",
     "password_placeholder": "請輸入密碼",
     "forget_password": "忘記密碼？",
+    "bind_mobile_login": "綁定手機號",
     "password_login": "密碼登錄",
     "password_login_v2": "使用密碼登錄",
     "mobile_login": "手機驗證碼登錄",
@@ -260,7 +263,10 @@
     "back_to_login": "返回登錄",
     "has_account": "已有賬號，",
     "direct_login": "直接登錄",
-    "select_reset_password_way": "選擇重置密碼的方式",
+    "immediate_login": "立即登入",
+    "login_by_wechat": "請使用微信掃碼登入",
+    "select_reset_password_way": "選擇重設密碼的方式",
+    "select_register_way": "選擇註冊帳號的方式",
     "email_validate": "郵箱驗證",
     "mobile_validate": "手機驗證",
     "new_password": "新密碼",
@@ -506,7 +512,7 @@
       "department_placeholder": "請選擇部門",
       "same_member_exists_tip": "成員手機已存在",
       "same_mobile_exists_tip": "與第{index}個成員手機號相同",
-      "register_to_internal_confirm": "檢測到該手機號（{mobile}）已是註冊用戶，是否確認升級為內部用戶？",
+      "register_to_internal_confirm": "手機號 ({mobile}) 已是註冊用戶，是否確認升級為內部用戶？",
       "edit_member": "編輯成員"
     },
     "organization": {
@@ -867,6 +873,8 @@
   "debug_preview": "調試預覽",
   "restart": "重新開始",
   "start_running": "開始運行",
+  "sync_output_variable": "同步輸出變數",
+  "not_found_url": "無法找到 URL，請檢查智能體是否設定正確",
   "message_input_placeholder": "發消息或輸入您的問題...",
   "workspace": "工作空間",
   "edit_agent": "編輯智能體",
@@ -1121,6 +1129,10 @@
     "markdown": "Markdown",
     "image": "图片",
     "audio": "音频",
-    "video": "视频"
+    "video": "视频",
+    "array_text": "陣列文本",
+    "array_image": "陣列圖片",
+    "array_audio": "陣列音頻",
+    "array_video": "陣列視頻"
   }
 }

@@ -8,7 +8,7 @@
     append-to-body
     @close="close"
   >
-    <ElForm ref="form_ref" :model="form" :rules="formRules" label-position="top">
+    <ElForm ref="formRef" :model="form" :rules="formRules" label-position="top">
       <!-- 提示信息 -->
       <div class="w-full flex flex-col gap-3 bg-[#F6F9FC] p-5 mb-4 box-border text-sm text-[#4F5052]">
         <div class="whitespace-pre-wrap leading-7" v-html="guideHtml" />
@@ -115,7 +115,7 @@ const emits = defineEmits<{
 // 状态管理
 const enterprise_store = useEnterpriseStore()
 const copy_ref = shallowRef<InstanceType<typeof ElIcon> | null>(null)
-const form_ref = shallowRef<FormInstance | null>(null)
+const formRef = shallowRef<FormInstance | null>(null)
 const visible = ref(false)
 const form = reactive<AuthForm>({
   client_id: '',
@@ -311,7 +311,7 @@ const open = async ({ data = {} as ProviderData } = {}) => {
   // 处理 Coze CN 的复制功能
   if (isCozeCN.value) {
     await nextTick()
-    const copy_hook_el = form_ref.value?.$el.querySelector('.copy-hook')
+    const copy_hook_el = formRef.value?.$el.querySelector('.copy-hook')
     if (copy_ref.value?.$el && copy_hook_el) {
       copy_hook_el.appendChild(copy_ref.value.$el)
     }
@@ -342,9 +342,9 @@ const handleAuthorization = async (auth_url: string, provider_type: ProviderValu
 }
 
 const handleConfirm = async () => {
-  if (!form_ref.value) return
+  if (!formRef.value) return
 
-  const valid = await form_ref.value.validate()
+  const valid = await formRef.value.validate()
   if (!valid) return
 
   const config = currentConfig.value
@@ -366,9 +366,8 @@ const handleConfirm = async () => {
   try {
     saving.value = true
     await providerApi.save({ data })
-
     // 处理授权流程
-    if (config.getAuthUrl && !origin_data.value.is_authorized) {
+    if (config.getAuthUrl) {
       const auth_url = config.getAuthUrl(form, coze_auth_url.value)
       await handleAuthorization(auth_url, origin_data.value.provider_type as ProviderValueType)
     }

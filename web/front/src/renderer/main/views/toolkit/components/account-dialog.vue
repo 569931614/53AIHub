@@ -1,34 +1,42 @@
 <template>
-  <ElDialog v-model="visible" :title="$t('toolbox.account_access')" width="600" align-center>
-    <div class="text-[#999999]">{{ $t('toolbox.account_text') }}</div>
+  <ElDialog
+    v-model="visible"
+    :title="$t('toolbox.account_access')"
+    width="600"
+    align-center
+    class="el-dialog--bottom-center"
+    modal-class="account-share-modal"
+  >
+    <div class="text-[#999999] sm:hidden">{{ $t('toolbox.account_text2') }}</div>
+    <div class="text-[#999999] max-sm:hidden">{{ $t('toolbox.account_text') }}</div>
 
-    <div v-loading="loading" class="h-72 overflow-y-auto flex flex-col gap-3 mt-4">
-      <div v-for="(item, index) in accountList" :key="index" class="bg-[#F2F7FF] flex flex-col gap-7 p-5 rounded">
-        <div class="flex gap-6">
-          <span class="text-[#999999] flex-none">{{ $t('form.account') }}</span>
+    <div v-loading="loading" class="max-h-72 min-h-28 overflow-y-auto flex flex-col gap-3 mt-4">
+      <div v-for="(item, index) in accountList" :key="index" class="bg-[#F2F7FF] flex flex-col gap-5 p-5 rounded">
+        <div class="flex">
+          <span class="text-[#999999] flex-none w-14">{{ $t('form.account') }}</span>
           <span class="text-[#1D1E1F] break-words whitespace-pre-wrap min-w-0">{{ item.account }}</span>
-          <el-link v-copy="item.account" :underline="false">
+          <el-link v-copy="item.account" class="ml-1" :underline="false">
             <SvgIcon name="copy" />
           </el-link>
         </div>
-        <div class="flex gap-6">
-          <span class="text-[#999999] flex-none">{{ $t('form.password') }}</span>
+        <div class="flex">
+          <span class="text-[#999999] flex-none w-14">{{ $t('form.password') }}</span>
           <span class="text-[#1D1E1F] break-words whitespace-pre-wrap min-w-0">{{ item.password }}</span>
-          <el-link v-copy="item.password" :underline="false">
+          <el-link v-copy="item.password" class="ml-1" :underline="false">
             <SvgIcon name="copy" />
           </el-link>
         </div>
-        <div v-if="item.remark" class="w-full flex gap-6">
-          <span class="text-[#999999] flex-none">{{ $t('form.remark') }}</span>
+        <div v-if="item.remark" class="flex">
+          <span class="text-[#999999] flex-none w-14">{{ $t('form.remark') }}</span>
           <span class="text-[#1D1E1F] flex-1 break-words whitespace-pre-wrap min-w-0">{{ item.remark }}</span>
         </div>
       </div>
     </div>
 
-    <div class="flex justify-center mt-4">
+    <template #footer>
       <ElButton type="primary" size="large" @click="handleVisit">{{ $t('toolbox.click_access') }}</ElButton>
       <ElButton size="large" @click="close">{{ $t('action.cancel') }}</ElButton>
-    </div>
+    </template>
   </ElDialog>
 </template>
 
@@ -74,3 +82,19 @@ defineExpose({
 </script>
 
 <style scoped></style>
+<style>
+@media screen and (width <= 640px) {
+  .account-share-modal .el-overlay-dialog {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .account-share-modal .el-dialog {
+    margin-bottom: 0 !important;
+  }
+
+  .account-share-modal .el-dialog__footer {
+    display: none;
+  }
+}
+</style>

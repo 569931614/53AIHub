@@ -34,7 +34,9 @@
 			window.addEventListener('message', (event) => {
 				if (event.data.action === 'saas-login-success') {
           window.location.href = `//${location.host}/console${location.search}#/`
-        }
+        } else if (event.data.action === 'saas-login-redirect') {
+					window.location.replace(event.data.url)
+				}
 			}, false)
 		}
 	</script>

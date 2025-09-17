@@ -96,20 +96,20 @@ const handleModelEdit = (data: any) => modelSaveRef.value.open(data)
 
 const handleModelDelete = async (data: any, model: any) => {
   await ElMessageBox.confirm(window.$t('module.platform_model_delete_confirm'))
-  const isChildRemove = model && data.modelOptions.length > 1
+  const isChildRemove = model && data.models.length > 1
   if (isChildRemove) {
+    const custom_config = { ...data.custom_config }
+    delete custom_config[model.value]
     await channelApi.update(data.channel_id, {
       channel_id: data.channel_id,
-      key: data.api_key,
+      key: data.key,
       base_url: data.base_url,
-      config: data.config || {},
-      models: data.modelOptions
-        ?.map((item: any) => item.value)
-        .filter((item: any) => item !== model.value)
-        .join(','),
+      other: data.other,
+      models: data.models.filter((item: any) => item !== model.value).join(','),
       name: data.name,
       type: data.channel_type,
-      custom_config: data.custom_config,
+      config: JSON.stringify(data.config || {}),
+      custom_config: JSON.stringify(custom_config),
     })
   } else {
     await channelApi.delete(data.channel_id)

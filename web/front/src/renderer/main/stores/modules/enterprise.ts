@@ -32,12 +32,17 @@ export const useEnterpriseStore = defineStore('enterprise-store', {
       url_list: [],
       interval: ''
     },
-    template_style_info: {},
+    template_style_info: {
+      style_type: 'software'
+    },
     is_independent: false,
     is_enterprise: false,
     is_industry: false,
     is_install_wecom: false
   }),
+  getters: {
+    isSoftStyle: (state) => state.template_style_info.style_type === 'software'
+  },
   actions: {
     initTemplateStyle() {
       let {

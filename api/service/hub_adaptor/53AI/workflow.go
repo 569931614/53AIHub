@@ -478,8 +478,9 @@ func (a *AI53WorkflowAdaptor) ConvertWorkflowToAI53Request(parameters map[string
 	// 参数验证和日志
 	logger.SysLogf("🔄 开始转换53AI工作流请求 - 输入参数: %+v", parameters)
 
-	if len(parameters) == 0 {
-		return nil, fmt.Errorf("工作流参数不能为空")
+	// 允许空参数，归一化为 {}
+	if parameters == nil || len(parameters) == 0 {
+		parameters = map[string]interface{}{}
 	}
 
 	// 处理参数中的文件上传

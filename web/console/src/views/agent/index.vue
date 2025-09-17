@@ -357,9 +357,6 @@ const onAgentDelete = async ({ data: { agent_id } }: { data: { agent_id: number 
   loadListData()
 }
 
-const coze_cn_is_auth = ref(false)
-const app_builder_is_auth = ref(false)
-
 const loadProviderList = async () => {
   const list = (await providerApi.list()) as ProviderItem[]
 

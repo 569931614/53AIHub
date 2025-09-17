@@ -117,7 +117,7 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Close } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/modules/user'
 import MainHeader from '@/layout/header.vue'
 import TablePlus from '@/components/TablePlus/index.vue'

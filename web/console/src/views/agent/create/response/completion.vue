@@ -22,21 +22,67 @@
 
       <div v-else-if="showResult">
         <x-bubble-assistant class="!mb-0" :streaming="loading"></x-bubble-assistant>
+        <div
+          v-if="store.form_data.settings.output_fields.length === 0 && !loading && !initialHasOutputFields"
+          class="flex flex-col items-center"
+        >
+          <div
+            class="border prompt-input-wrapper rounded w-full h-full flex flex-col !bg-[#F8F9FA] relative overflow-y-auto"
+          >
+            <div class="min-h-10 pl-3 pr-2 border-b flex items-center justify-between rounded-t bg-[#F8F9FA]">
+              <div class="flex-1 text-sm text-[#4F5052] truncate">JSON</div>
+            </div>
+            <PromptInput
+              v-model="resultString"
+              style="flex: none; min-height: 40vh; height: max-content"
+              show-line
+              show-token
+              :word-wrap="true"
+            />
+          </div>
+          <ElButton type="primary" class="mt-8" @click="handleSyncVariables">{{ $t('sync_output_variable') }}</ElButton>
+        </div>
+
         <template v-for="item in result" :key="item.id">
           <div class="text-sm text-[#1D1E1F] mt-2">
             <!-- <x-md-renderer :content="result" /> -->
             <x-bubble-assistant v-if="item.type === 'markdown'" :content="item.value" :streaming="loading">
             </x-bubble-assistant>
-            <div v-else-if="item.type === 'image'" class="overflow-hidden">
-              <img :src="item.value" class="max-w-full h-auto object-contain rounded" />
+            <div v-else-if="item.type.includes('image')" class="overflow-hidden flex flex-col gap-5">
+              <img
+                v-for="(src, index) in Array.isArray(item.value) ? item.value : [item.value]"
+                :key="index"
+                :src="src"
+                class="max-w-full h-auto object-contain rounded"
+              />
             </div>
-            <div v-else-if="item.type === 'video'" class="overflow-hidden">
-              <video :src="item.value" controls class="max-w-full h-auto"></video>
+            <div v-else-if="item.type.includes('video')" class="overflow-hidden flex flex-col gap-5">
+              <video
+                v-for="(src, index) in Array.isArray(item.value) ? item.value : [item.value]"
+                :key="index"
+                :src="getSrc(src, item.id)"
+                controls
+                class="max-w-full h-auto"
+              ></video>
             </div>
-            <audio v-else-if="item.type === 'audio'" :src="item.value" controls class="max-w-full"></audio>
-            <p v-else class="whitespace-pre-wrap break-all">
-              {{ item.value }}
-            </p>
+            <div v-else-if="item.type.includes('audio')" class="overflow-hidden flex flex-col gap-5">
+              <audio
+                v-for="(src, index) in Array.isArray(item.value) ? item.value : [item.value]"
+                :key="index"
+                :src="getSrc(src, item.id)"
+                controls
+                class="max-w-full"
+              ></audio>
+            </div>
+            <div v-else-if="item.type.includes('text')">
+              <p
+                v-for="(text, index) in Array.isArray(item.value) ? item.value : [item.value]"
+                :key="index"
+                class="whitespace-pre-wrap break-all"
+              >
+                {{ text }}
+              </p>
+            </div>
           </div>
         </template>
       </div>
@@ -320,11 +366,16 @@ import { watch, ref } from 'vue'
 import { Loading, RefreshRight, Warning, Close } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import FileUpload from '@/components/Upload/index.vue'
+import PromptInput from '@/components/Prompt/input.vue'
 
 import conversationApi from '@/api/modules/conversation'
 
 import { useAgentFormStore } from '../store'
 import { useConversationStore } from '@/stores'
+
+import { generateRandomId } from '@/utils'
+import { isUrl } from '@/utils/url'
+import { outputDefaultField } from '@/constants/agent'
 
 const store = useAgentFormStore()
 const conversationStore = useConversationStore()
@@ -333,7 +384,9 @@ const formRef = ref<FormInstance>()
 const showResult = ref(false)
 const loading = ref(false)
 const result = ref([])
+const resultString = ref('')
 const showError = ref(false)
+const initialHasOutputFields = ref(false)
 const errorMessage = ref('')
 
 interface FormItem extends Agent.Field {
@@ -370,6 +423,7 @@ const validator = (item: FormItem) => {
 }
 
 const setFormatForm = () => {
+  initialHasOutputFields.value = store.form_data.settings.output_fields.length > 0
   form.value = (store.form_data.settings.input_fields || []).map(item => {
     if (['tag', 'file'].includes(item.type)) {
       return {
@@ -382,6 +436,23 @@ const setFormatForm = () => {
       value: item.type === 'select' && item.multiple ? [] : '',
     }
   })
+}
+
+// 从对象中获取url
+const getSrc = (value: any, id: string) => {
+  if (typeof value === 'object' && value !== null) {
+    for (const key in value) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const val = value[key]
+        if (typeof val === 'string' && isUrl(val)) {
+          return val
+        }
+      }
+    }
+    result.value = result.value.filter(item => item.id !== id)
+    ElMessage.error(window.$t('not_found_url'))
+  }
+  return value
 }
 
 const handleRestart = () => {
@@ -435,27 +506,30 @@ const getInputs = () => {
     }
     return result
   }, {})
-  Object.keys(inputs).forEach(key => {
-    if (!inputs[key]) {
-      delete inputs[key]
-    }
-  })
+  // Object.keys(inputs).forEach(key => {
+  //   if (!inputs[key]) {
+  //     delete inputs[key]
+  //   }
+  // })
   return inputs
 }
 
+// 没有任何输入时也应正常运行
 const getQuestion = inputs => {
-  let question = ''
-  let index = 0
-  while (!question) {
-    const value = inputs[Object.keys(inputs)[index]]
-    if (value.includes('file_id:')) {
-      question = 'image'
-    } else {
-      question = value
+  const keys = Object.keys(inputs)
+  for (let index = 0; index < keys.length; index++) {
+    const key = keys[index]
+    const value = inputs[key]
+    if (value === undefined) continue // 跳过未定义值
+
+    if (typeof value === 'string' && value.includes('file_id:')) {
+      return 'image'
     }
-    index++
+    if (value !== undefined) {
+      return String(value).slice(0, 20)
+    }
   }
-  return question.slice(0, 20)
+  return '' // 所有值均处理完毕后返回空字符串
 }
 
 const handleStartRunning = async () => {
@@ -486,17 +560,21 @@ const handleStartRunning = async () => {
     })
     .then(response => {
       const res = JSON.parse(response)
-      const output: Record<string, string> = store.form_data.settings.output_fields.reduce((result, item) => {
-        result.push({
-          id: item.id,
-          label: item.label,
-          type: item.type,
-          variable: item.variable,
-          value: res.data.workflow_output_data[item.variable] || '',
-        })
-        return result
-      }, [])
-      result.value = output
+      if (store.form_data.settings.output_fields.length > 0) {
+        const output: Record<string, string> = store.form_data.settings.output_fields.reduce((result, item) => {
+          result.push({
+            id: item.id,
+            label: item.label,
+            type: item.type,
+            variable: item.variable,
+            value: res.data.workflow_output_data[item.variable] || '',
+          })
+          return result
+        }, [])
+        result.value = output
+      } else {
+        resultString.value = JSON.stringify(res.data.workflow_output_data, null, 2)
+      }
     })
     .catch(res => {
       const resData = JSON.parse(res.response.data)
@@ -507,6 +585,34 @@ const handleStartRunning = async () => {
       loading.value = false
       abortController.value = null
     })
+}
+
+// 同步输出变量
+const handleSyncVariables = () => {
+  if (!resultString.value) return
+
+  // 格式化result为对象类型
+  let resultData: Record<string, any>
+  try {
+    resultData = JSON.parse(resultString.value)
+  } catch (e) {
+    console.error('解析result失败:', e)
+    return
+  }
+
+  // 生成输出字段列表
+  const fields: Agent.Field[] = Object.keys(resultData).map(key => {
+    return { ...outputDefaultField, id: generateRandomId(10), variable: key, label: key, type: 'textarea' }
+  })
+
+  // 更新存储中的输出字段
+  store.form_data.settings.output_fields = fields
+
+  showResult.value = false
+  setTimeout(() => {
+    showResult.value = true
+    handleRestart()
+  }, 0)
 }
 
 watch(

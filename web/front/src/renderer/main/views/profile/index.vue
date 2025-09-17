@@ -1,6 +1,6 @@
 <template>
   <div class="h-full bg-white">
-    <MainHeader sticky :back="false" hide-user :sider-button="isSoftware">
+    <MainHeader sticky :back="false" hide-user :sider-button="enterpriseStore.isSoftStyle">
       <template #before_suffix>
         <div class="text-base text-primary font-bold line-clamp-1 max-md:flex-1 max-md:text-center">
           {{ $t('action.setting') }}
@@ -131,7 +131,6 @@ const menus = computed(() => [
     visible: window.$isElectron
   }
 ])
-const isSoftware = computed(() => enterpriseStore.template_style_info.style_type === 'software')
 
 const page = ref('')
 const handleSelect = (item: any) => {

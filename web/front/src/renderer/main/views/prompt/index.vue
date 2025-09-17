@@ -6,12 +6,6 @@
           {{ navigationStore.promptNavigation.name || $t('module.prompt') }}
         </div>
       </template>
-
-      <template #after_prefix>
-        <!-- <span class="flex items-center gap-1 text-sm cursor-pointer md:hidden" @click="$router.back()">
-          <svg-icon name="return" size="18" stroke></svg-icon>
-        </span> -->
-      </template>
     </MainHeader>
     <PromptView class="flex-1" />
     <MFooter />

@@ -151,14 +151,14 @@ defineExpose({
   validateForm,
 })
 
-let first_load = true
 watch(
   () => store.form_data.custom_config.coze_workspace_id,
   workspace_id => {
-    if (!first_load) store.loadCozeBotOptions(workspace_id)
-
-    first_load = false
-  }
+    if (workspace_id) {
+      store.loadCozeBotOptions(workspace_id)
+    }
+  },
+  { immediate: true }
 )
 </script>
 

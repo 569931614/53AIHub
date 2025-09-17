@@ -5,6 +5,9 @@ import { subscriptionApi } from '@/api/modules/subscription'
 import eventBus from '@/utils/event-bus'
 import { getSimpleDateFormatString } from '@/utils/moment'
 import { EVENT_NAMES } from '@/constants/events'
+import useEnv from '@/hooks/useEnv'
+
+const { isOpLocalEnv } = useEnv()
 
 export const DEFAULT_GROUP_NAME = '免费版'
 export const DEFAULT_GROUP_ICON = 'vip-1'
@@ -66,8 +69,8 @@ export const useUserStore = defineStore('user-store', {
 
     async wechat_login(params: { unionid?: string }) {
       const res = await userApi.wechat_login(params).catch(() => ({ data: { access_token: '' } }))
-      if (!res.data.access_token) return Promise.reject(new Error('access_token is empty'))
-      this.setAccessToken(res.data.access_token)
+      if (!res.data.user.access_token) return Promise.reject(new Error('access_token is empty'))
+      this.setAccessToken(res.data.user.access_token)
       await this.getUserInfo()
       eventBus.emit(EVENT_NAMES.LOGIN_SUCCESS)
       return res.data
@@ -206,9 +209,12 @@ export const useUserStore = defineStore('user-store', {
       }
       this.is_login = true
     },
-    logout({ redirectDisabled = false }: { redirectDisabled?: boolean } = {}) {
+    async logout({ redirectDisabled = false }: { redirectDisabled?: boolean } = {}) {
       this.info = { ...DEFAULT_USER }
       this.is_login = false
+      if (!isOpLocalEnv.value) {
+        await userApi.logout()
+      }
       localStorage.removeItem(TOKEN_KEY)
       eventBus.clearCache(EVENT_NAMES.LOGIN_SUCCESS)
       setTimeout(() => {

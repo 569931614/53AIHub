@@ -1,7 +1,7 @@
 <template>
   <div name="list" tag="div">
     <div v-if="!showList.length" class="col-span-full flex flex-col items-center justify-center">
-      <el-empty :description="$t('common.no_data')" :image="$getPublicPath('/images/chat/completion_empty.png')" />
+      <el-empty :description="$t('common.no_data')" />
     </div>
     <template v-for="item in showList" :key="item.group_id">
       <h2 v-if="+item.group_id" :id="`group_${item.group_id}`" class="col-span-full text-placeholder">{{ item.group_name }}</h2>
@@ -9,31 +9,46 @@
         v-for="row in item.children"
         :key="row.id"
         class="min-h-20 bg-white rounded px-5 py-4 flex items-center gap-2 cursor-pointer border border-[#ECECEC] hover:shadow relative group"
-        @click="handleAdd(row)"
+        @click="handleCardClick(row)"
       >
         <ElImage class="size-10 rounded-full" fit="contain" lazy :src="row.logo" />
         <div class="flex-1 overflow-hidden">
-          <div
-            class="text-base font-medium text-primary mb-1 mt-1 line-clamp-1"
-            :title="row.name"
-            v-html="row.name.replace(keyword, `<span class='text-theme'>${keyword}</span>`)"
-          />
-          <div
-            class="text-sm text-regular text-opacity-60 line-clamp-1"
-            :title="row.description"
-            v-html="row.description.replace(keyword, `<span class='text-theme'>${keyword}</span>`)"
-          />
+          <div class="text-base font-medium text-primary mb-1 mt-1 line-clamp-1" :title="row.name" v-html="highlightText(row.name, keyword)" />
+          <div class="text-sm text-regular text-opacity-60 line-clamp-1" :title="row.description" v-html="highlightText(row.description, keyword)" />
         </div>
 
+        <!-- PC端悬停覆盖层 -->
         <div
           v-if="row.has_share_account"
-          class="absolute inset-0 items-center justify-center bg-[#222326] bg-opacity-55 rounded hidden group-hover:flex gap-2"
+          class="absolute inset-0 items-center justify-center bg-[#222326] bg-opacity-55 rounded hidden md:group-hover:flex gap-2"
         >
           <ElButton class="!mr-0 hover:bg-white" @click.stop="handleVisit(row)">{{ $t('toolbox.account_access') }}</ElButton>
-          <ElButton type="primary" class="!ml-0" @click.stop="handleAdd(row)">{{ $t('toolbox.direct_access') }}</ElButton>
+          <ElButton type="primary" class="!ml-0" @click.stop="handleTo(row)">{{ $t('toolbox.direct_access') }}</ElButton>
         </div>
       </div>
     </template>
+
+    <!-- 移动端底部弹窗 -->
+    <div v-if="showMobileModal" class="fixed inset-0 z-50 md:hidden" @click="closeMobileModal">
+      <!-- 背景遮罩 -->
+      <div class="absolute inset-0 bg-black bg-opacity-50" />
+
+      <!-- 底部弹窗 -->
+      <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl transform transition-transform duration-300 ease-out">
+        <div class="flex flex-col">
+          <button class="h-12 font-medium text-base hover:bg-gray-200 transition-colors" @click="handleTo(selectedItem!)">
+            {{ $t('toolbox.direct_access') }}
+          </button>
+          <button class="h-12 font-medium text-base hover:bg-gray-200 transition-colors" @click="handleVisit(selectedItem!)">
+            {{ $t('toolbox.account_access') }}
+          </button>
+          <button class="h-12 border-t font-medium text-base hover:bg-gray-50 transition-colors" @click="closeMobileModal">
+            {{ $t('action.cancel') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <AccountDialog ref="dialogRef" />
   </div>
 </template>
@@ -43,11 +58,15 @@ import { computed, ref } from 'vue'
 import { useLinksStore } from '@/stores/modules/links'
 import { useUserStore } from '@/stores/modules/user'
 import AccountDialog from './account-dialog.vue'
+import { useBasicLayout } from '@/hooks/useBasicLayout'
 
 const linksStore = useLinksStore()
 const userStore = useUserStore()
+const { isSmScreen } = useBasicLayout()
 
 const dialogRef = ref()
+const showMobileModal = ref(false)
+const selectedItem = ref<Link.State | null>(null)
 
 const props = withDefaults(
   defineProps<{
@@ -57,7 +76,7 @@ const props = withDefaults(
     groupId?: number
   }>(),
   {
-    list: [],
+    list: () => [],
     keyword: '',
     onlyAll: false,
     groupId: 0
@@ -70,37 +89,61 @@ const hasPermission = (userGroupIds: number[], itemGroupIds: number[]) => {
   return userGroupIds.some((groupId) => itemGroupIds.includes(groupId))
 }
 
+// 高亮文本函数（不区分大小写）
+const highlightText = (text: string, keyword: string) => {
+  if (!text || !keyword) return text
+
+  const regex = new RegExp(keyword, 'gi')
+  return text.replace(regex, (match) => `<span class='text-theme'>${match}</span>`)
+}
+
 const showList = computed(() => {
-  // if (!props.keyword) return props.list
-  // return props.list.filter(item => {
-  //   return item.name.includes(props.keyword) || item.description.includes(props.keyword)
-  // })
-  const categorys = JSON.parse(JSON.stringify(linksStore.categorys || [])).filter((item) => (props.onlyAll ? item.group_id == 0 : item.group_id != 0))
-  const list = JSON.parse(JSON.stringify(linksStore.links || []))
-  categorys.forEach((item) => {
-    item.children = list.filter((row) => {
-      // 检查用户是否有权限访问
-      const hasAccess = hasPermission(userStore.info.group_ids || [], row.user_group_ids || [])
-      return hasAccess && row.group_id === item.group_id && row.user_group_ids.length > 0
-    })
-    if (props.onlyAll && item.group_id == 0) {
-      item.children = props.list.filter((row) => {
-        const hasAccess = hasPermission(userStore.info.group_ids || [], row.user_group_ids || [])
-        return hasAccess && Array.isArray(row.user_group_ids) && row.user_group_ids.length > 0
+  const categories = linksStore.categorys?.filter((item) => (props.onlyAll ? item.group_id === 0 : item.group_id !== 0)) || []
+
+  const links = linksStore.links || []
+
+  return categories
+    .map((category) => {
+      const children = links.filter((link) => {
+        const hasAccess = hasPermission(userStore.info.group_ids || [], (link as any).user_group_ids || [])
+        return hasAccess && link.group_id === category.group_id && (link as any).user_group_ids?.length > 0
       })
-    }
-    if (props.keyword) item.children = item.children.filter((row) => row.name.includes(props.keyword) || row.description.includes(props.keyword))
-  })
-  return categorys.filter((item) => item.children.length)
+
+      // 搜索过滤
+      const filteredChildren = props.keyword
+        ? children.filter((link) => {
+            const keyword = props.keyword.toLowerCase()
+            return link.name?.toLowerCase().includes(keyword) || link.description?.toLowerCase().includes(keyword)
+          })
+        : children
+
+      return { ...category, children: filteredChildren }
+    })
+    .filter((category) => category.children.length > 0)
 })
 
-const handleAdd = (item: Link.State) => {
-  if (item.has_share_account) return
+const handleCardClick = (item: Link.State) => {
+  if (isSmScreen.value && item.has_share_account) {
+    selectedItem.value = item
+    showMobileModal.value = true
+  } else {
+    window.open(item.url, '_blank')
+  }
+}
+
+const handleTo = (item: Link.State) => {
+  closeMobileModal()
   window.open(item.url, '_blank')
 }
 
 const handleVisit = (item: Link.State) => {
+  closeMobileModal()
   dialogRef.value.open(item)
+}
+
+const closeMobileModal = () => {
+  showMobileModal.value = false
+  selectedItem.value = null
 }
 </script>
 

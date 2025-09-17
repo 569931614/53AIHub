@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isSoftware">
+  <template v-if="enterpriseStore.isSoftStyle">
     <div
       v-if="enterpriseStore.copyright.toLowerCase() !== 'true'"
       class="w-full flex justify-center items-center gap-1.5 text-xs text-placeholder my-4"
@@ -24,9 +24,9 @@
         </div>
       </template>
     </div>
-  </div>
+  </template>
 
-  <div v-else>
+  <template v-else>
     <div v-if="enterpriseStore.copyright.toLowerCase() !== 'true'" class="mt-auto relative py-8 md:py-10 lg:py-12 page-footer-bg page-footer-text">
       <!-- <div  class="w-11/12 lg:w-4/5 mx-auto">
         <div class="grid grid-cols-2 md:grid-cols-3 lg:flex gap-6 md:gap-4">
@@ -106,25 +106,23 @@
           <p class="text-sm md:text-base text-white text-opacity-50">和创始人交个朋友</p>
         </div>
       </div>
-      <div class="w-full flex justify-center items-center gap-1.5 text-xs absolute bottom-5 left-0 right-0">
+      <div class="w-full flex justify-center items-center gap-1.5 text-xs absolute top-1/2 -translate-y-1/2 left-0 right-0">
         <span>本网站由</span>
         <img :src="$getPublicPath(`/images/53ai-hub.png`)" class="flex-none w-[72px] object-cover" />
         <span>提供技术支持</span>
       </div>
     </div>
-  </div>
+  </template>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useNavigationStore } from '@/stores/modules/navigation'
 import { useEnterpriseStore } from '@/stores/modules/enterprise'
 
 const navigationStore = useNavigationStore()
 
 const enterpriseStore = useEnterpriseStore()
-
-const isSoftware = computed(() => enterpriseStore.template_style_info.style_type === 'software')
 
 // 移动端底部导航栏
 const footerList = ref([

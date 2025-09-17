@@ -104,7 +104,12 @@
         <UploadImage v-model="formData.logo" class="w-12 h-12" />
       </ElFormItem>
 
-      <UseGroup :user-group="userGroup" :subscription-group="subscriptionGroup" @change="onChange" />
+      <UseGroup
+        :user-group="userGroup"
+        :editable="editable"
+        :subscription-group="subscriptionGroup"
+        @change="onChange"
+      />
     </ElForm>
     <template #footer>
       <div class="flex border-t pt-5 justify-end w-full">

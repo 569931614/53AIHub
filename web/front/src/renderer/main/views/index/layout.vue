@@ -4,7 +4,7 @@
       <template #before_suffix>
         <a href="/" class="flex flex-none items-center gap-2 overflow-hidden">
           <img :alt="enterpriseStore.display_name" :title="enterpriseStore.display_name" class="min-w-11 h-11 rounded" :src="enterpriseStore.logo" />
-          <span class="text-2xl font-semibold nav-text truncate">
+          <span class="min-w-0 flex-1 text-2xl font-semibold nav-text truncate max-w-50 sm:max-w-72 md:max-w-96">
             {{ enterpriseStore.display_name }}
           </span>
         </a>
@@ -147,6 +147,15 @@ onMounted(async () => {
   // handleRedirect()
 })
 
+router.beforeEach(() => {
+  if (scrollRef.value) {
+    scrollRef.value.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }
+})
+
 watch(
   () => route.query,
   () => {
@@ -165,15 +174,11 @@ watch(
     if (config.seo_title) setMeta({ key: 'title', value: config.seo_title })
     if (config.seo_keywords) setMeta({ key: 'keywords', value: config.seo_keywords })
     if (config.seo_description) setMeta({ key: 'description', value: config.seo_description })
-    if (path.includes('/chat') || path.includes('/agent')) {
-      activeMenuItem.value = navigationStore.navigations[1].menu_path
-    } else if (path.includes('/prompt')) {
-      activeMenuItem.value = navigationStore.navigations[2].menu_path
-    } else if (path.includes('/toolkit')) {
-      activeMenuItem.value = navigationStore.navigations[3].menu_path
-    } else {
-      activeMenuItem.value = navigationStore.navigations[0].menu_path
-    }
+
+    const priorityPaths = ['/chat', '/agent', '/prompt', '/toolkit', '/index']
+    const matchedPath = priorityPaths.find((item) => path.includes(item))
+    const targetMenu = matchedPath ? navigationStore.navigations.find((item) => item.menu_path.includes(matchedPath)) : null
+    activeMenuItem.value = targetMenu?.menu_path || ''
   },
   {
     immediate: true
@@ -201,13 +206,13 @@ watch(
   height: 256px;
 }
 
-@media (min-width: 768px) {
+@media (width <= 768px) {
   ::v-deep(.el-carousel__container) {
     height: 300px;
   }
 }
 
-@media (min-width: 1024px) {
+@media (width <= 1024px) {
   ::v-deep(.el-carousel__container) {
     height: 385px;
   }

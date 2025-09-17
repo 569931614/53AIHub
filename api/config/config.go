@@ -24,6 +24,7 @@ var OnlyOneLogFile = env.Bool("ONLY_ONE_LOG_FILE", false)
 var StartTime = time.Now().Format("2006-01-02 15:04:05")
 var IS_SAAS = env.Bool("IS_SAAS", false)
 var ApiHost = env.String("API_HOST", "")
+var MigrateDBEnabled = env.Bool("MIGRATE_DB_ENABLED", true)
 
 var REDIS_CONN = env.String("REDIS_CONN", "")
 var MAX_UPLOAD_FILE_SIZE_STRING = env.String("MAX_UPLOAD_FILE_SIZE", "15MB")

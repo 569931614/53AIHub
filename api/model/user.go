@@ -28,7 +28,7 @@ type User struct {
 	ExpiredTime    int64           `json:"expired_time" gorm:"not null" example:"1672502400"`
 	LastLoginTime  int64           `json:"last_login_time" gorm:"not null" example:"1672502400"`
 	AccessToken    string          `json:"access_token" gorm:"type:varchar(512);column:access_token"`
-	RelatedId      int64           `json:"related_id" gorm:"type:int;default:0;not null" example:"0"`
+	RelatedId      int64           `json:"related_id" gorm:"type:int;default:0;not null;index:idx_users_related_id" example:"0"`
 	Type           int             `json:"type" gorm:"type:int;default:1;not null;comment:'User type: 1-Registered user, 2-Internal user'" example:"1"`
 	AddAdminTime   int64           `json:"add_admin_time" gorm:"type:bigint;default:0;not null;comment:'Time when user was added as admin'" example:"1672502400"`
 	OpenID         string          `json:"openid" gorm:"type:varchar(512);column:openid"`
@@ -289,6 +289,21 @@ func UpdateUserPassword(eid int64, userID int64, newPassword string) error {
 	return DB.Model(&user).Update("password", user.Password).Error
 }
 
+// UpdateAllUsersPasswordByRelatedID updates password for all enterprise users whose related_id equals the platform UserID.
+// It re-hashes the newPassword with each enterprise user's own salt.
+func UpdateAllUsersPasswordByRelatedID(relatedId int64, newSalt string, hashedPassword string) error {
+	if relatedId <= 0 {
+		return errors.New("invalid relatedId")
+	}
+	// 批量更新所有 related_id 命中的记录的 salt 与 password
+	return DB.Model(&User{}).
+		Where("related_id = ?", relatedId).
+		Updates(map[string]interface{}{
+			"salt":     newSalt,
+			"password": hashedPassword,
+		}).Error
+}
+
 func GetUserByEmail(eid int64, email string) (User, error) {
 	var user User
 	err := DB.Where("eid = ? AND email = ?", eid, email).First(&user).Error
@@ -316,6 +331,15 @@ func (user *User) VerifyPassword(password string) error {
 func GetUserByRelatedId(eid int64, relatedId int64) (*User, error) {
 	var user User
 	err := DB.Where("eid = ? AND related_id = ?", eid, relatedId).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func GetFirstUserByRelatedId(relatedId int64) (*User, error) {
+	var user User
+	err := DB.Where("related_id = ?", relatedId).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -510,6 +534,14 @@ func GetUserByUnionId(unionId string, eid int64) (*User, error) {
 	return &user, nil
 }
 
+func GetFirstUserByUnionId(unionId string) (*User, error) {
+	var user User
+	if err := DB.Where("unionid = ?", unionId).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // IsOpenIdExists 检查OpenID是否已存在
 func IsOpenIdExists(openId string) (bool, error) {
 	var count int64
@@ -525,4 +557,12 @@ func GetUserCountByEIDAndType(eid int64, theType int) (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+// InvalidateAccessToken 使用户的访问令牌失效
+func (user *User) InvalidateAccessToken() error {
+	// 清空用户的访问令牌
+	user.AccessToken = ""
+	// 更新数据库中的用户记录
+	return DB.Model(user).Update("access_token", "").Error
 }

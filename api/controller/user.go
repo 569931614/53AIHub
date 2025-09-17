@@ -239,14 +239,14 @@ func PasswordRegister(c *gin.Context) {
 
 	if isMobile && config.IS_SAAS {
 		if userRequest.VerifyCode == "" {
-			c.JSON(http.StatusBadRequest, model.ParamError.ToNewErrorResponse(model.InvalidVerificationCode))
+			c.JSON(http.StatusBadRequest, model.InvalidVerificationCodeError.ToNewErrorResponse(model.InvalidVerificationCode))
 			return
 		}
 
 		redisKey := fmt.Sprintf("Api::CheckVerificationCode:%s", username)
 		code, err := common.RedisGet(redisKey)
 		if err != nil || code != userRequest.VerifyCode {
-			c.JSON(http.StatusBadRequest, model.ParamError.ToNewErrorResponse(model.InvalidVerificationCode))
+			c.JSON(http.StatusBadRequest, model.InvalidVerificationCodeError.ToNewErrorResponse(model.InvalidVerificationCode))
 			return
 		}
 	} else if !isEmail && config.IS_SAAS {
@@ -289,6 +289,12 @@ func PasswordRegister(c *gin.Context) {
 	if err := common.Validate.Struct(&user); err != nil {
 		c.JSON(http.StatusBadRequest, model.ParamError.ToErrorResponse(err))
 		return
+	}
+
+	var theUser model.User
+	if err = model.DB.Where("eid = ?", eid).First(&theUser).Error; err != nil && err.Error() == "record not found" {
+		// 一个站点没有用户，视为初始化，是创建者
+		user.Role = model.RoleCreatorUser
 	}
 
 	err = user.Create()
@@ -540,11 +546,6 @@ func UpdateEnterpriseUser(c *gin.Context) {
 	user.Nickname = userRequest.Nickname
 	user.Avatar = userRequest.Avatar
 	updatePassword := false
-	if userRequest.Password != "" {
-		user.Password = userRequest.Password
-		updatePassword = true
-	}
-	// user.Mobile = userRequest.Mobile
 	user.GroupId = userRequest.GroupId
 	user.ExpiredTime = userRequest.ExpiredTime
 
@@ -1496,6 +1497,67 @@ type ResetPasswordRequest struct {
 	ConfirmPassword string `json:"confirm_password" binding:"required"`   // 确认新密码
 }
 
+// Logout 用户登出
+// @Summary 用户登出
+// @Description 使当前用户的访问令牌失效，完成登出操作
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} model.CommonResponse "登出成功"
+// @Router /api/logout [post]
+func Logout(c *gin.Context) {
+	// 从请求头获取令牌
+	token := c.Request.Header.Get("Authorization")
+	token = strings.Replace(token, "Bearer ", "", 1)
+
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, model.UnauthorizedError.ToResponse(nil))
+		return
+	}
+
+	// 获取用户ID
+	userID, exists := c.Get(session.SESSION_USER_ID)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, model.UnauthorizedError.ToResponse(nil))
+		return
+	}
+
+	uid, ok := userID.(int64)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, model.UnauthorizedError.ToResponse(nil))
+		return
+	}
+
+	// 获取用户信息
+	user, err := model.GetUserByID(uid)
+	if err != nil || user == nil {
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
+		return
+	}
+
+	// 使令牌失效
+	err = user.InvalidateAccessToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, model.SystemError.ToResponse(err))
+		return
+	}
+
+	// 记录系统日志
+	log := model.SystemLog{
+		Eid:      user.Eid,
+		UserID:   user.UserID,
+		Nickname: user.Nickname,
+		Module:   model.SystemLogModuleSystem,
+		Action:   model.SystemLogActionLoginOut,
+		Content:  "登出",
+		IP:       utils.GetClientIP(c),
+	}
+	model.CreateSystemLog(&log)
+
+	c.JSON(http.StatusOK, model.Success.ToResponse("登出成功"))
+}
+
 // ResetPassword 重置用户密码
 // @Summary 重置用户密码
 // @Description 通过手机号或邮箱验证码重置密码
@@ -1826,4 +1888,22 @@ func SetUserToDefaultSubscription(c *gin.Context) {
 
 	// Return success response
 	c.JSON(http.StatusOK, model.Success.ToResponse(user))
+}
+
+
+ // IsInit checks whether the system has been initialized (whether a user exists for eid=1)
+ // @Summary Check initialization status
+ // @Description Returns true if the system is initialized (exists a user with eid=1), otherwise false
+ // @Tags System
+ // @Accept json
+ // @Produce json
+ // @Success 200 {object} model.CommonResponse{data=bool} "Success"
+ // @Router /api/is_init [get]
+func IsInit(c *gin.Context) {
+	var user model.User
+	if err := model.DB.Where("eid = ?", 1).First(&user).Error; err != nil {
+		c.JSON(http.StatusOK, model.Success.ToResponse(false))
+	} else {
+		c.JSON(http.StatusOK, model.Success.ToResponse(true))
+	}
 }

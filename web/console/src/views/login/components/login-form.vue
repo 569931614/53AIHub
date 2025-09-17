@@ -13,7 +13,7 @@
       >
         <img class="flex-none mr-4 w-[60px] h-[60px] object-cover rounded" :src="item.logo" />
         <div class="flex-1">
-          <div class="text-base text-[#182B50]">
+          <div class="max-w-64 text-base text-[#182B50] truncate">
             {{ item.name || '- -' }}
           </div>
           <div class="text-sm text-[#9A9A9A] mt-2">
@@ -79,6 +79,8 @@
           size="large"
           :placeholder="$t('login.mobile_placeholder')"
           clearable
+          @input="checkAccountValidation"
+          @blur="checkAccountValidation"
         />
       </ElFormItem>
       <ElFormItem
@@ -89,7 +91,12 @@
         <template #label>
           <span class="text-[#1D1E1F]">{{ $t('verification_code') }}</span>
         </template>
-        <VerificationCodeInput ref="verify_code_input_ref" v-model="form.verify_code" :account="form.username" />
+        <VerificationCodeInput
+          ref="verify_code_input_ref"
+          v-model="form.verify_code"
+          :account="form.username"
+          :disabled="!isAccountValid"
+        />
       </ElFormItem>
       <ElButton
         type="primary"
@@ -102,10 +109,10 @@
         {{ $t('action_login') }}
       </ElButton>
     </template>
-    <template v-else>
+    <template v-if="form.type === 'password'">
       <ElFormItem
         prop="username"
-        :rules="generateInputRules({ message: 'login.mobile_placeholder', validator: ['text', 'mobile'] })"
+        :rules="generateInputRules({ message: 'login.account_placeholder', validator: ['text'] })"
       >
         <template #label>
           <span class="text-[#1D1E1F]">{{ $t('account') }}</span>
@@ -114,7 +121,7 @@
           v-model="form.username"
           style="--el-input-bg-color: #f1f2f3; --el-input-border-color: transparent; --el-input-height: 44px"
           size="large"
-          :placeholder="$t('login.mobile_placeholder')"
+          :placeholder="$t('login.account_placeholder')"
           clearable
         />
       </ElFormItem>
@@ -163,6 +170,47 @@
         @click="onLogin"
       >
         {{ $t('action_login') }}
+      </ElButton>
+    </template>
+    <template v-if="form.type === 'wechat'">
+      <WeChat @oauth-success="handleOauthSuccess" />
+    </template>
+    <template v-if="form.type === 'bind_mobile'">
+      <ElFormItem
+        prop="username"
+        class="mt-5"
+        label-position="top"
+        :rules="generateInputRules({ message: 'login.mobile_placeholder', validator: ['text', 'mobile'] })"
+      >
+        <template #label>
+          <span class="text-[#1D1E1F]">{{ $t('mobile') }}</span>
+        </template>
+        <ElInput
+          v-model="form.username"
+          style="--el-input-bg-color: #f1f2f3; --el-input-border-color: transparent; --el-input-height: 44px"
+          autocomplete="new-username"
+          name="prevent_autofill_username"
+          size="large"
+          :placeholder="$t('login.mobile_placeholder')"
+          clearable
+        />
+      </ElFormItem>
+      <ElFormItem
+        class="relative"
+        prop="verify_code"
+        :rules="generateInputRules({ message: 'verification_code_placeholder' })"
+      >
+        <VerificationCodeInput ref="verify_code_input_ref" v-model="form.verify_code" :account="form.username" />
+      </ElFormItem>
+      <ElButton
+        type="primary"
+        round
+        class="w-full mt-8 !h-10"
+        :disabled="!form.username || !form.verify_code"
+        :loading="submitting"
+        @click="onLogin"
+      >
+        {{ $t('action_confirm') }}
       </ElButton>
     </template>
     <ElDivider class="!w-[80%] !mx-auto">
@@ -216,8 +264,10 @@ import { ArrowRight, Loading } from '@element-plus/icons-vue'
 
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import ServiceDialog from '@/components/ServiceDialog/index.vue'
+import WeChat from './wechat.vue'
 import { useEnterpriseStore, useUserStore } from '@/stores'
 import { generateInputRules } from '@/utils/form-rule'
+import { validateFormField } from '@/utils/form-validator'
 import eventBus from '@/utils/event-bus'
 import { sleep } from '@/utils'
 import systemLogApi from '@/api/modules/system-log'
@@ -244,11 +294,20 @@ const submitting = ref(false)
 const enterprise_list = ref([])
 const loading = ref(false)
 const service_visible = ref(false)
+const oauth_data = ref<any>({})
+const isAccountValid = ref(false)
 
 const is_login = computed(() => {
   const { access_token } = user_store.info
   return Boolean(access_token)
 })
+
+const defaultDomain = computed(() => `${window.location.origin}/#/index`)
+
+// 检查账号验证状态
+const checkAccountValidation = async () => {
+  isAccountValid.value = await validateFormField(form_ref, 'username')
+}
 
 onMounted(() => {
   if (is_login.value) return loadEnterpriseList()
@@ -266,6 +325,7 @@ const onLanguageChange = () => {
   if (form_ref.value) form_ref.value.clearValidate()
   // form_ref.value.validate()
 }
+
 const loadEnterpriseList = async () => {
   loading.value = true
   const { list = [] } = await enterprise_store.loadListData({ data: { status: -1 } }).finally(() => {
@@ -305,6 +365,12 @@ const handleEnterpriseSelect = async ({ data = {} } = {}) => {
     action: SYSTEM_LOG_ACTION.LOGIN,
     content: '登录',
   })
+
+  // 重置加载状态
+  data.is_loading = false
+
+  // 构建目标URL
+  // #ifdef KM
   if (window.parent) {
     window.parent.postMessage(
       {
@@ -317,6 +383,17 @@ const handleEnterpriseSelect = async ({ data = {} } = {}) => {
   } else {
     window.location.reload()
   }
+  // #endif
+
+  // #ifndef KM
+  const targetUrl = `${data.domain}?access_token=${user_store.info.access_token}&eid=${data.eid}`
+  if (window.parent) {
+    window.parent.postMessage({
+      action: 'saas-login-redirect',
+      url: targetUrl,
+    })
+  }
+  // #endif
 }
 const onApply = () => {
   emits('apply')
@@ -328,43 +405,40 @@ const reset = () => {
   form.verify_code = ''
 }
 const onLogin = async () => {
-  let valid = await form_ref.value.validate()
+  const valid = await form_ref.value.validate()
   if (!valid) return
   submitting.value = true
-  if (form.type === 'mobile') {
-    valid = await verify_code_input_ref.value.validateCode()
+  if (form.type.includes('mobile')) {
+    const valid = await verify_code_input_ref.value.validateCode()
     if (!valid) return (submitting.value = false)
   }
-  const data = await user_store
-    .login({ type: form.type, data: form, hideError: true })
-    .catch(err => {
-      // if (err.code == RESPONSE_CODE_UNAUTHORIZED_ERROR && err.origin_message == 'unauthorized: user not found') {
-      // 	onRegister()
-      // } else ElMessage.warning(window.$t(err.message))
-      ElMessage.warning(
-        window.$t(
-          err.origin_message === 'unauthorized'
-            ? 'response_message.user_not_found'
-            : 'response_message.username_or_password_is_incorrect'
+  if (form.type === 'bind_mobile') {
+    await user_store.bind_wechat({
+      mobile: form.username,
+      verify_code: form.verify_code,
+      openid: oauth_data.value.openid,
+      unionid: oauth_data.value.unionid,
+      nickname: oauth_data.value.nickname,
+      from: 'saas',
+    })
+  } else {
+    const data = await user_store
+      .login({ type: form.type, data: form, hideError: true })
+      .catch(err => {
+        // if (err.code == RESPONSE_CODE_UNAUTHORIZED_ERROR && err.origin_message == 'unauthorized: user not found') {
+        // 	onRegister()
+        // } else ElMessage.warning(window.$t(err.message))
+        ElMessage.warning(
+          window.$t(
+            err.origin_message === 'unauthorized'
+              ? 'response_message.user_not_found'
+              : 'response_message.username_or_password_is_incorrect'
+          )
         )
-      )
-      return Promise.reject(err)
-    })
-    .finally(() => {
-      submitting.value = false
-    })
-  if (data.is_new_user) {
-    ElMessageBox.confirm(
-      window.$t('login.new_user_tip', { password: `${form.verify_code}${form.verify_code}` }),
-      window.$t('tip'),
-      {
-        confirmButtonText: window.$t('login.I_remember'),
-        cancelButtonText: window.$t('login.modify_password'),
-      }
-    )
-      .then(() => {})
-      .catch(() => {
-        onForgetPassword()
+        return Promise.reject(err)
+      })
+      .finally(() => {
+        submitting.value = false
       })
   }
   loadEnterpriseList()
@@ -380,6 +454,18 @@ const onLogin = async () => {
 // 		reset()
 // 	})
 // }
+
+const handleOauthSuccess = async (data: any) => {
+  await user_store.wechat_login({ unionid: data.unionid, from: 'saas' }).catch(err => {
+    oauth_data.value = data
+    form.type = 'bind_mobile'
+    return Promise.reject(err)
+  })
+  loadEnterpriseList()
+  ElMessage.success(window.$t('action_login_success'))
+  reset()
+}
+
 const onForgetPassword = () => {
   emits('forget')
 }
@@ -399,7 +485,7 @@ const onMobileLogin = () => {
   form.type = 'mobile'
 }
 const onWechatLogin = () => {
-  ElMessage.warning(window.$t('feature_coming_soon'))
+  form.type = 'wechat'
 }
 const onGoogleLogin = () => {
   ElMessage.warning(window.$t('feature_coming_soon'))
@@ -416,4 +502,8 @@ defineExpose({
 })
 </script>
 
-<style scoped lang="scss"></style>
+<style>
+.dialog .el-dialog__header {
+  border: none !important;
+}
+</style>

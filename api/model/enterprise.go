@@ -2,11 +2,9 @@ package model
 
 import (
 	"errors"
-	"os"
 	"time"
 
 	"github.com/53AI/53AIHub/common/logger"
-	"github.com/53AI/53AIHub/common/utils/helper"
 	"github.com/53AI/53AIHub/common/utils/system"
 	"github.com/53AI/53AIHub/config"
 	"gorm.io/gorm"
@@ -310,41 +308,6 @@ func InitializeSystem() error {
 		return err
 	}
 	logger.SysLogf("Successfully created points subscription relation")
-
-	// 3. Create admin user
-	adminEmail := os.Getenv("ADMIN_EMAIL")
-	adminMobile := os.Getenv("ADMIN_MOBILE")
-	adminPassword := os.Getenv("ADMIN_PASSWORD")
-
-	if adminEmail == "" && adminMobile == "" {
-		adminEmail = "admin@53ai.com"
-	}
-
-	if adminPassword == "" {
-		adminPassword = "admin888"
-	}
-
-	salt := helper.RandomString(6)
-	adminPassword, _ = helper.PasswordHash(adminPassword, salt)
-
-	adminUser := User{
-		Username: "admin",
-		Nickname: "Administrator",
-		Email:    adminEmail,
-		Mobile:   adminMobile,
-		Eid:      enterprise.Eid,
-		GroupId:  defaultGroup.GroupId,
-		Role:     RoleCreatorUser, // Set as admin user
-		Password: adminPassword,
-		Salt:     salt,
-	}
-
-	// Create user
-	if err := tx.Create(&adminUser).Error; err != nil {
-		tx.Rollback()
-		logger.SysLogf("Failed to create admin user: %s", err.Error())
-		return err
-	}
 
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {

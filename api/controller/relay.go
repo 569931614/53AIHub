@@ -755,9 +755,9 @@ func getPreConsumedQuota(textRequest *relay_model.GeneralOpenAIRequest, promptTo
 
 // executeWorkflow 执行工作流并返回标准响应数据
 func executeWorkflow(c *gin.Context, workflowRequest *WorkflowRunRequest, agent *model.Agent) (*custom.WorkflowResponseData, error) {
-	// 验证 parameters 参数
-	if len(workflowRequest.Parameters) == 0 {
-		return nil, errors.New("工作流参数不能为空")
+	// 允许空参数，归一化为 {}
+	if workflowRequest.Parameters == nil || len(workflowRequest.Parameters) == 0 {
+		workflowRequest.Parameters = map[string]interface{}{}
 	}
 
 	logger.SysLogf("工作流执行开始 - Model: %s, ConversationID: %d, Parameters: %+v",

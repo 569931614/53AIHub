@@ -1,235 +1,288 @@
 <template>
-  <div class="flex gap-10 h-full bg-white relative">
-    <div class="flex-1 flex flex-col h-full">
-      <MainHeader v-if="!hideMenuHeader">
-        <template #before_suffix>
-          <div class="text-base text-primary line-clamp-1 max-md:flex-1 max-md:text-center" :title="currentConv.title || currentAgent.name || ''">
-            {{ currentConv.title || currentAgent.name || '' }}
-          </div>
-        </template>
-        <template #after_prefix>
-          <span class="flex items-center gap-1 text-sm cursor-pointer md:hidden" @click="$router.back()">
-            <svg-icon name="return" size="18" stroke></svg-icon>
-          </span>
-        </template>
-        <template #after_suffix>
+  <div class="flex flex-col min-h-full">
+    <header v-if="isShareMode" class="flex-none sticky top-0 z-10 bg-white" :class="[showRecommend ? 'w-4/6' : 'border-b']">
+      <div class="h-[70px] flex items-center justify-between" :class="[showRecommend ? 'w-[95%]' : 'w-11/12 md:w-4/5 max-w-[800px] mx-auto']">
+        <el-checkbox
+          :model-value="state.selectAll"
+          :label="state.selectAll ? $t('action.unselect_all') : $t('action.select_all')"
+          :value="true"
+          size="large"
+          @click="handleSelectAll"
+        />
+        <div class="flex items-center gap-2">
           <div
-            v-tooltip="{ content: $t('chat.usage_guide') }"
-            class="h-[26px] px-2 rounded-full flex-center gap-1.5 text-sm text-primary cursor-pointer hover:bg-[#E1E2E3]"
-            @click="handleToggleGuide"
+            v-if="state.selectMessageIds.length"
+            v-debounce
+            class="h-8 flex items-center gap-1 px-2 rounded-md bg-[#F5F5F7] cursor-pointer hover:bg-[#E1E2E3]"
+            @click.stop="handleCreateShare"
           >
-            <div class="size-4">
-              <svg-icon name="layout-split" size="18"></svg-icon>
-            </div>
+            <svg-icon name="unlink" size="16" stroke />
+            <span class="text-sm text-primary">复制链接</span>
           </div>
-        </template>
-      </MainHeader>
-
-      <!-- 消息列表区域 -->
-      <div class="flex-1 flex">
-        <x-bubble-list
-          ref="bubbleListRef"
-          :auto-scroll="false"
-          class="flex-1"
-          :messages="state.messageList"
-          :main-class="[showRecommend ? 'w-[95%]' : 'w-11/12 md:w-4/5 max-w-[800px] mx-auto mt-5']"
-          enable-pull-up
-          @pull-up="handleLoadListMore"
-        >
-          <template v-if="currentAgent.settings_obj && !state.messageList.length" #header>
-            <div
-              class="w-full mt-2 flex items-center gap-3 box-border p-6 rounded-xl overflow-hidden"
-              :style="{
-                background: `linear-gradient(90deg, rgba(243, 249, 254, 1) 0%, rgba(247, 243, 255, 1) 100%)`
-              }"
-            >
-              <img class="flex-none size-10 rounded-full overflow-hidden" :src="currentAgent.logo" />
-              <div class="flex-1 flex flex-col gap-1">
-                <div class="text-xl font-semibold text-primary">{{ currentAgent.name }}</div>
-                <div class="text-sm text-regular break-words whitespace-pre-wrap">
-                  {{ currentAgent.description }}
-                </div>
-              </div>
-            </div>
-            <div class="mt-2 mb-10">
-              <AuthTagGroup label-position="top" :model-value="currentAgent.user_group_ids" />
-            </div>
-            <x-bubble-assistant
-              v-if="showWelcome"
-              type="welcome"
-              :content="currentAgent.settings_obj.opening_statement"
-              :suggestions="currentAgent.settings_obj.suggested_questions"
-              @suggestion="handleSuggestion"
-            ></x-bubble-assistant>
-          </template>
-          <template #item="{ message, index }">
-            <!-- 用户消息气泡 -->
-            <x-bubble-user :key="message.id + '_user'" :content="message.query" :files="message.user_files">
-              <template #menu>
-                <div
-                  v-tooltip="{ content: $t('action.copy') }"
-                  v-copy="message.query"
-                  class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]"
-                >
-                  <el-icon color="#9B9B9B">
-                    <CopyDocument />
-                  </el-icon>
-                </div>
-              </template>
-            </x-bubble-user>
-
-            <!-- AI助手消息气泡 -->
-            <x-bubble-assistant
-              :key="message.id + '_assistant'"
-              :content="message.answer"
-              :reasoning="message.reasoning_content"
-              :reasoning-expanded="message.reasoning_expanded"
-              :streaming="message.loading"
-              :always-show-menu="index === state.messageList.length - 1"
-            >
-              <template v-if="!message.loading" #menu>
-                <div
-                  v-tooltip="{ content: $t('action.copy') }"
-                  v-copy="message.answer"
-                  class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]"
-                >
-                  <el-icon color="#9B9B9B">
-                    <CopyDocument />
-                  </el-icon>
-                </div>
-                <div
-                  v-tooltip="{ content: $t('chat.regenerate') }"
-                  class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]"
-                  @click="handleRegenerate(message)"
-                >
-                  <el-icon color="#9B9B9B">
-                    <Refresh />
-                  </el-icon>
-                </div>
-                <div v-if="false" v-tooltip="{ content: $t('chat.like') }" class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]">
-                  <svg-icon size="18" name="like" color="#9B9B9B"></svg-icon>
-                </div>
-                <div v-if="false" v-tooltip="{ content: $t('chat.like') }" class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]">
-                  <svg-icon size="18" name="dislike" color="#9B9B9B"></svg-icon>
-                </div>
-              </template>
-            </x-bubble-assistant>
-            <RelatedScene v-if="index === state.messageList.length - 1 && !message.loading" :output="message.answer" />
-          </template>
-        </x-bubble-list>
-
-        <div v-if="showRecommend" class="flex-none w-2/6 relative flex flex-col gap-4 pb-5">
-          <h2 class="flex-none text-base font-semibold text-regular">{{ $t('common.related_agent') }}</h2>
-          <div v-if="currentAgent.agent_id" class="flex-1 overflow-y-auto flex flex-col gap-2.5">
-            <template v-for="item in relatedAgentList" :key="item.agent_id">
-              <div class="flex-none h-24 border rounded p-4 cursor-pointer hover:bg-[#F1F2F3]" @click="onSelectAgent(item)">
-                <div class="flex items-center gap-2">
-                  <img class="size-6 rounded-full" :src="item.logo" />
-                  <span class="text-sm text-primary">{{ item.name }}</span>
-                </div>
-                <div class="text-sm text-regular line-clamp-2 mt-1.5" :title="item.description">
-                  {{ item.description || '--' }}
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-
-      <!-- 底部输入区域 -->
-      <div class="py-5 sticky bottom-0 bg-white" :class="[showRecommend ? 'w-4/6' : 'w-11/12 md:w-4/5 max-w-[800px] mx-auto']">
-        <div class="flex gap-2 mb-2.5">
-          <AgentTooltip @select="onSelectAgent">
-            <div class="h-8 px-2 rounded-full flex-center gap-1.5 bg-[#F1F2F3] cursor-pointer hover:bg-[#E1E2E3]">
-              <img class="size-4 rounded-full" :src="currentAgent.logo" alt="" />
-              <span class="text-sm text-primary">{{ currentAgent.name }}</span>
-              <div class="size-4 flex-center">
-                <el-icon color="#333333">
-                  <ArrowDown />
-                </el-icon>
-              </div>
-            </div>
-          </AgentTooltip>
-
-          <div v-if="false" class="h-8 px-2 rounded-full flex-center gap-1.5 bg-[#F1F2F3] cursor-pointer hover:bg-[#E1E2E3]">
-            <div class="size-4">
-              <svg-icon name="network"></svg-icon>
-            </div>
-            <span class="text-sm text-primary">{{ $t('chat.online_search') }}</span>
-          </div>
-          <div class="flex-1"></div>
-          <div
-            v-if="showHistory"
-            v-permission
-            class="h-8 px-2 rounded-full flex-center gap-1.5 bg-[#F1F2F3] text-sm text-primary cursor-pointer hover:bg-[#E1E2E3]"
-            @click="handleHistory"
-          >
-            <div class="size-4">
-              <svg-icon name="history"></svg-icon>
-            </div>
-            {{ $t('chat.history') }}
-          </div>
-          <div
-            class="h-8 px-2 rounded-full flex-center gap-1.5 bg-[#F1F2F3] text-sm text-primary cursor-pointer hover:bg-[#E1E2E3]"
-            @click="handleNewConversation"
-          >
-            <div class="size-4">
-              <svg-icon name="plus"></svg-icon>
-            </div>
-            {{ $t('chat.new_conversation') }}
-          </div>
-        </div>
-        <x-sender
-          ref="senderRef"
-          :http-request="httpRequest"
-          :enable-upload="enable_upload"
-          :accept-types="upload_accept"
-          :loading="state.isStreaming"
-          allow-multiple
-          enable-drag-upload
-          :allow-send-with-files="allowSendWithFiles"
-          @send="handleSend"
-          @stop="handleStop"
-        ></x-sender>
-        <div v-if="!hideFooter" class="flex justify-center items-center my-2">
-          <img src="/images/chat/footer.png" class="h-[12px]" />
-        </div>
-      </div>
-    </div>
-
-    <!-- 右侧帮助面板 -->
-    <Transition name="slide">
-      <div
-        v-if="state.showHelper"
-        class="border-l bg-white left-0 right-0 top-0 bottom-0 z-[10]"
-        :class="[useCaseFixed && state.showHelper ? 'fixed' : 'absolute']"
-      >
-        <div class="h-[70px] flex-center border-b relative">
-          <h4 class="text-lg text-primary">{{ $t('chat.usage_guide') }}</h4>
-          <div
-            class="flex-center size-6 absolute right-2 top-1/2 -translate-y-1/2 rounded cursor-pointer hover:bg-[#ECEDEE]"
-            @click="handleToggleGuide"
-          >
+          <div class="size-8 flex-center rounded-md bg-[#F5F5F7] cursor-pointer hover:bg-[#E1E2E3]" @click="handleOpenShare()">
             <el-icon>
               <Close />
             </el-icon>
           </div>
         </div>
-        <Helper :agent="currentAgent"></Helper>
       </div>
-    </Transition>
+    </header>
+    <MainHeader v-else-if="!hideMenuHeader">
+      <template #before_suffix>
+        <div class="text-base text-primary line-clamp-1 max-md:flex-1 max-md:text-center" :title="currentConv.title || currentAgent.name || ''">
+          {{ currentConv.title || currentAgent.name || '' }}
+        </div>
+      </template>
+      <template #after_prefix>
+        <span class="flex items-center gap-1 text-sm cursor-pointer md:hidden" @click="$router.back()">
+          <svg-icon name="return" size="18" stroke></svg-icon>
+        </span>
+        <div
+          v-if="state.messageList.length"
+          v-tooltip="{ content: $t('action.share') }"
+          class="h-6 px-1 rounded flex-center gap-1 cursor-pointer hover:bg-[#E1E2E3]"
+          @click.stop="handleOpenShare()"
+        >
+          <svg-icon size="18" name="share-two" color="#4F5052" stroke></svg-icon>
+        </div>
+        <div
+          v-tooltip="{ content: $t('chat.usage_guide') }"
+          class="h-6 px-1 rounded flex-center gap-1 cursor-pointer hover:bg-[#E1E2E3]"
+          @click="handleToggleGuide"
+        >
+          <div class="size-4">
+            <svg-icon name="layout-split" size="18"></svg-icon>
+          </div>
+        </div>
+      </template>
+    </MainHeader>
 
-    <HistoryDrawer ref="historyRef" @new="handleNewConversation" />
+    <!-- 消息列表区域 -->
+    <div class="flex-1 flex mt-5">
+      <x-bubble-list
+        ref="bubbleListRef"
+        :auto-scroll="false"
+        class="flex-1"
+        :messages="state.messageList"
+        :main-class="showRecommend ? 'w-[95%]' : 'w-11/12 md:w-4/5 max-w-[800px] mx-auto'"
+        enable-pull-up
+        @pull-up="handleLoadListMore"
+      >
+        <template v-if="currentAgent.settings_obj && !state.messageList.length" #header>
+          <div
+            class="w-full mt-2 flex items-center gap-3 box-border p-6 rounded-xl overflow-hidden"
+            :style="{
+              background: `linear-gradient(90deg, rgba(243, 249, 254, 1) 0%, rgba(247, 243, 255, 1) 100%)`
+            }"
+          >
+            <img class="flex-none size-10 rounded-full overflow-hidden" :src="currentAgent.logo" />
+            <div class="flex-1 flex flex-col gap-1">
+              <div class="text-xl font-semibold text-primary">{{ currentAgent.name }}</div>
+              <div class="text-sm text-regular break-words whitespace-pre-wrap">
+                {{ currentAgent.description }}
+              </div>
+            </div>
+          </div>
+          <div class="mt-2 mb-10">
+            <AuthTagGroup label-position="top" :model-value="currentAgent.user_group_ids" />
+          </div>
+          <x-bubble-assistant
+            v-if="showWelcome"
+            type="welcome"
+            :content="currentAgent.settings_obj.opening_statement"
+            :suggestions="currentAgent.settings_obj.suggested_questions"
+            @suggestion="handleSuggestion"
+          ></x-bubble-assistant>
+        </template>
+        <template #item="{ message, index }">
+          <div
+            class="flex items-center gap-5 rounded-xl"
+            :class="[isShareMode ? 'mb-4 px-3 py-4 bg-[#F5F5F5]' : '']"
+            @click="handleSelectMessage(message)"
+          >
+            <el-checkbox v-if="isShareMode" :model-value="state.selectMessageIds.includes(message.id)" />
+            <div class="flex-1">
+              <!-- 用户消息气泡 -->
+              <x-bubble-user :key="message.id + '_user'" :content="message.query" :class="[isShareMode ? '!mb-0' : '']" :files="message.user_files">
+                <template v-if="state.displayMode === DISPLAY_MODE.CHAT" #menu>
+                  <div
+                    v-tooltip="{ content: $t('action.copy') }"
+                    v-copy="message.query"
+                    class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]"
+                  >
+                    <el-icon color="#9B9B9B">
+                      <CopyDocument />
+                    </el-icon>
+                  </div>
+                </template>
+              </x-bubble-user>
+            </div>
+          </div>
+
+          <!-- AI助手消息气泡 -->
+          <div
+            class="flex items-center gap-5 rounded-xl"
+            :class="[isShareMode ? 'mb-4 px-3 py-4 bg-[#F5F5F5]' : '']"
+            @click="handleSelectMessage(message)"
+          >
+            <el-checkbox v-if="isShareMode" :model-value="state.selectMessageIds.includes(message.id)" />
+            <div class="flex-1">
+              <x-bubble-assistant
+                :key="message.id + '_assistant'"
+                :content="message.answer"
+                :class="[isShareMode ? '!mb-0' : '']"
+                :reasoning="message.reasoning_content"
+                :reasoning-expanded="message.reasoning_expanded"
+                :streaming="message.loading"
+                :always-show-menu="index === state.messageList.length - 1"
+              >
+                <template v-if="!message.loading && state.displayMode === DISPLAY_MODE.CHAT" #menu>
+                  <div
+                    v-tooltip="{ content: $t('action.copy') }"
+                    v-copy="message.answer"
+                    class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]"
+                  >
+                    <el-icon color="#9B9B9B">
+                      <CopyDocument />
+                    </el-icon>
+                  </div>
+                  <div
+                    v-tooltip="{ content: $t('chat.regenerate') }"
+                    class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]"
+                    @click="handleRegenerate(message)"
+                  >
+                    <el-icon color="#9B9B9B">
+                      <Refresh />
+                    </el-icon>
+                  </div>
+                  <div class="h-6 px-1 rounded flex-center gap-1 cursor-pointer hover:bg-[#E1E2E3]" @click="handleOpenShare(message)">
+                    <svg-icon size="18" name="share-two" color="#9B9B9B" stroke></svg-icon>
+                    <span class="text-sm text-[#939499]">{{ $t('action.share') }}</span>
+                  </div>
+                  <div v-if="false" v-tooltip="{ content: $t('chat.like') }" class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]">
+                    <svg-icon size="18" name="like" color="#9B9B9B"></svg-icon>
+                  </div>
+                  <div v-if="false" v-tooltip="{ content: $t('chat.like') }" class="h-6 px-1 rounded flex-center cursor-pointer hover:bg-[#E1E2E3]">
+                    <svg-icon size="18" name="dislike" color="#9B9B9B"></svg-icon>
+                  </div>
+                </template>
+              </x-bubble-assistant>
+            </div>
+          </div>
+          <RelatedScene v-if="index === state.messageList.length - 1 && !message.loading && !isShareMode" :output="message.answer" />
+        </template>
+      </x-bubble-list>
+
+      <div v-if="showRecommend" class="flex-none w-2/6 flex flex-col gap-4 pb-5" :class="[isShareMode ? '-mt-[70px]' : '']">
+        <h2 class="flex-none text-base font-semibold text-regular">{{ $t('common.related_agent') }}</h2>
+        <div v-if="currentAgent.agent_id" class="flex-1 overflow-y-auto flex flex-col gap-2.5">
+          <template v-for="item in relatedAgentList" :key="item.agent_id">
+            <div class="flex-none h-24 border rounded p-4 cursor-pointer hover:bg-[#F1F2F3]" @click="onSelectAgent(item)">
+              <div class="flex items-center gap-2">
+                <img class="size-6 rounded-full" :src="item.logo" />
+                <span class="text-sm text-primary">{{ item.name }}</span>
+              </div>
+              <div class="text-sm text-regular line-clamp-2 mt-1.5" :title="item.description">
+                {{ item.description || '--' }}
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部输入区域 -->
+    <div v-if="!isShareMode" class="py-5 sticky bottom-0 bg-white" :class="[showRecommend ? 'w-4/6' : 'w-11/12 md:w-4/5 max-w-[800px] mx-auto']">
+      <div class="flex gap-2 mb-2.5">
+        <AgentTooltip @select="onSelectAgent">
+          <div class="h-8 px-2 rounded-full flex-center gap-1.5 bg-[#F1F2F3] cursor-pointer hover:bg-[#E1E2E3]">
+            <img class="size-4 rounded-full" :src="currentAgent.logo" alt="" />
+            <span class="text-sm text-primary">{{ currentAgent.name }}</span>
+            <div class="size-4 flex-center">
+              <el-icon color="#333333">
+                <ArrowDown />
+              </el-icon>
+            </div>
+          </div>
+        </AgentTooltip>
+
+        <div v-if="false" class="h-8 px-2 rounded-full flex-center gap-1.5 bg-[#F1F2F3] cursor-pointer hover:bg-[#E1E2E3]">
+          <div class="size-4">
+            <svg-icon name="network"></svg-icon>
+          </div>
+          <span class="text-sm text-primary">{{ $t('chat.online_search') }}</span>
+        </div>
+        <div class="flex-1"></div>
+        <div
+          v-if="showHistory"
+          v-permission
+          class="h-8 px-2 rounded-full flex-center gap-1.5 bg-[#F1F2F3] text-sm text-primary cursor-pointer hover:bg-[#E1E2E3]"
+          @click="handleHistory"
+        >
+          <div class="size-4">
+            <svg-icon name="history"></svg-icon>
+          </div>
+          {{ $t('chat.history') }}
+        </div>
+        <div
+          class="h-8 px-2 rounded-full flex-center gap-1.5 bg-[#F1F2F3] text-sm text-primary cursor-pointer hover:bg-[#E1E2E3]"
+          @click="handleNewConversation"
+        >
+          <div class="size-4">
+            <svg-icon name="plus"></svg-icon>
+          </div>
+          {{ $t('chat.new_conversation') }}
+        </div>
+      </div>
+      <x-sender
+        ref="senderRef"
+        :http-request="httpRequest"
+        :enable-upload="enable_upload"
+        :accept-types="upload_accept"
+        :loading="state.isStreaming"
+        allow-multiple
+        enable-drag-upload
+        :allow-send-with-files="allowSendWithFiles"
+        @send="handleSend"
+        @stop="handleStop"
+      ></x-sender>
+      <div v-if="enterpriseStore.copyright.toLowerCase() !== 'true'" class="flex justify-center items-center my-2">
+        <img :src="$getPublicPath('/images/chat/footer.png')" class="h-3" />
+      </div>
+    </div>
   </div>
+
+  <!-- 右侧帮助面板 -->
+  <Transition name="slide">
+    <div
+      v-if="state.showHelper"
+      class="border-l bg-white left-0 right-0 top-0 bottom-0 z-10"
+      :class="[useCaseFixed && state.showHelper ? 'fixed' : 'absolute']"
+    >
+      <div class="h-[70px] flex-center border-b relative">
+        <h4 class="text-lg text-primary">{{ $t('chat.usage_guide') }}</h4>
+        <div
+          class="flex-center size-6 absolute right-2 top-1/2 -translate-y-1/2 rounded cursor-pointer hover:bg-[#ECEDEE]"
+          @click="handleToggleGuide"
+        >
+          <el-icon>
+            <Close />
+          </el-icon>
+        </div>
+      </div>
+      <Helper :agent="currentAgent"></Helper>
+    </div>
+  </Transition>
+  <HistoryDrawer ref="historyRef" @new="handleNewConversation" />
 </template>
 
 <script setup lang="ts">
 import { ArrowDown, Close, CopyDocument, Refresh } from '@element-plus/icons-vue'
 import { computed, defineAsyncComponent, onMounted, onBeforeUnmount, reactive, ref } from 'vue'
-import AuthTagGroup from '@/components/AuthTagGroup/index.vue'
 import MainHeader from '@/layout/header.vue'
-import AgentTooltip from './agent-tooltip.vue'
-import HistoryDrawer from './history.vue'
+import AuthTagGroup from '@/components/AuthTagGroup/index.vue'
+import AgentTooltip from './components/agent-tooltip.vue'
+import HistoryDrawer from './components/history.vue'
 import RelatedScene from '@/components/RelatedScene/index.vue'
 
 import { useAgentStore } from '@/stores/modules/agent'
@@ -242,12 +295,21 @@ import conversationApi from '@/api/modules/conversation'
 import uploadApi from '@/api/modules/upload'
 
 import { checkPermission } from '@/utils/permission'
+import sharesApi from '@/api/modules/share'
+import { copyToClip } from '@/utils/copy'
+import { isHashRouter } from '@/router'
 
 const Helper = defineAsyncComponent(() => import('../helper.vue'))
 // 扩展消息类型，添加动效相关属性
 interface ExtendedMessage extends Conversation.Message {
   isNew?: boolean
 }
+
+const DISPLAY_MODE = {
+  CHAT: 'chat',
+  SHARE: 'share'
+}
+
 const agentStore = useAgentStore()
 const convStore = useConversationStore()
 const enterpriseStore = useEnterpriseStore()
@@ -255,14 +317,12 @@ const enterpriseStore = useEnterpriseStore()
 withDefaults(
   defineProps<{
     hideMenuHeader?: boolean
-    hideFooter?: boolean
     showRecommend?: boolean
     useCaseFixed?: boolean
     showHistory?: boolean
   }>(),
   {
     hideMenuHeader: false,
-    hideFooter: false,
     showRecommend: false,
     useCaseFixed: false,
     showHistory: false
@@ -271,7 +331,35 @@ withDefaults(
 
 const abortController = ref<AbortController | null>(null)
 const historyRef = ref<InstanceType<typeof HistoryDrawer> | null>(null)
+
 const senderRef = ref(null)
+const bubbleListRef = ref(null)
+const containerHeight = ref(0)
+let resizeObserver: ResizeObserver | null = null
+
+const state = reactive<{
+  offset: number
+  limit: number
+  showHelper: boolean
+  messageList: ExtendedMessage[]
+  isStreaming: boolean
+  isLoadingMore: boolean
+  hasMore: boolean
+  displayMode: string
+  selectMessageIds: number[]
+  selectAll: boolean
+}>({
+  offset: 0,
+  limit: 10,
+  showHelper: false,
+  messageList: [],
+  isStreaming: false,
+  isLoadingMore: false, // 添加加载更多状态标志
+  hasMore: true, // 是否还有更多消息
+  displayMode: DISPLAY_MODE.CHAT,
+  selectMessageIds: [],
+  selectAll: false
+})
 
 const currentAgent = computed(() => convStore.currentAgent)
 const currentConv = computed(() => convStore.currentConversation)
@@ -302,23 +390,12 @@ const showWelcome = computed(() => {
     return true
   return false
 })
-
-const bubbleListRef = ref(null)
-const containerHeight = ref(0)
-let resizeObserver = null
-
 const handleHeightChange = (height) => {
   agentStore.setBoxHeight(height)
 }
 
-const state = reactive({
-  offset: 0,
-  limit: 10,
-  showHelper: false,
-  messageList: [] as ExtendedMessage[],
-  isStreaming: false,
-  isLoadingMore: false, // 添加加载更多状态标志
-  hasMore: true // 是否还有更多消息
+const isShareMode = computed(() => {
+  return state.displayMode === DISPLAY_MODE.SHARE
 })
 
 const handleToggleGuide = () => {
@@ -372,11 +449,12 @@ const processStreamData = (e: any, processedLength: number): number => {
   try {
     // 处理SSE格式的数据
     const lines = newChunk.split('\n').filter((line) => line.trim() !== '' && line.trim() !== 'data: [DONE]')
-
+    console.log(lines)
     for (const line of lines) {
       if (line.startsWith('data: ')) {
         try {
           const data = JSON.parse(line.slice(6))
+          const { message_id } = data
           const content = data.choices?.[0]?.delta?.content
           const reasoning_content = data.choices?.[0]?.delta?.reasoning_content
           if (content) {
@@ -386,6 +464,9 @@ const processStreamData = (e: any, processedLength: number): number => {
           if (reasoning_content) {
             // 将新内容追加到当前消息
             lastMessage.reasoning_content += reasoning_content
+          }
+          if (message_id) {
+            lastMessage.id = message_id
           }
         } catch (err) {
           console.error('解析JSON失败:', err)
@@ -604,6 +685,49 @@ const handleSuggestion = (suggestion: string) => {
   handleSend(suggestion, [])
 }
 
+const handleOpenShare = (message?: Conversation.Message) => {
+  state.selectAll = false
+  state.selectMessageIds = []
+  if (message) {
+    state.displayMode = DISPLAY_MODE.SHARE
+  } else {
+    state.displayMode = DISPLAY_MODE.SHARE === state.displayMode ? DISPLAY_MODE.CHAT : DISPLAY_MODE.SHARE
+  }
+}
+
+const handleSelectAll = () => {
+  if (state.displayMode === DISPLAY_MODE.SHARE) {
+    state.selectMessageIds = state.selectAll ? [] : state.messageList.map((item) => item.id)
+    state.selectAll = !state.selectAll
+  }
+}
+const handleSelectMessage = (message: Conversation.Message) => {
+  if (state.displayMode === DISPLAY_MODE.SHARE) {
+    if (state.selectMessageIds.includes(message.id)) {
+      state.selectMessageIds = state.selectMessageIds.filter((id) => id !== message.id)
+      state.selectAll = false
+    } else {
+      state.selectMessageIds.push(message.id)
+    }
+  }
+}
+
+const handleCreateShare = () => {
+  return sharesApi
+    .create({
+      message_ids: state.selectMessageIds,
+      conversation_id: currentConv.value.conversation_id,
+      select_all: state.selectAll
+    })
+    .then((res) => {
+      const link = `${window.location.origin}${isHashRouter ? '#' : ''}/share/chat?share_id=${res.share_id}`
+      copyToClip(link).then(() => {
+        ElMessage.success(window.$t('chat.completion_share_link'))
+      })
+      state.displayMode = DISPLAY_MODE.CHAT
+    })
+}
+
 onMounted(() => {
   loadList()
   if (bubbleListRef.value) {
@@ -644,6 +768,9 @@ defineExpose({
   },
   hideUseCase: () => {
     state.showHelper = false
+  },
+  showShare: () => {
+    handleOpenShare()
   }
 })
 </script>

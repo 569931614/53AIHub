@@ -29,12 +29,16 @@ func InitDB() {
 	setDBConns(DB)
 	logger.Debug(nil, "database init end")
 
-	logger.Debug(nil, "database migration started")
-	if err = migrateDB(); err != nil {
-		logger.FatalLog("failed to migrate database: " + err.Error())
-		return
+	if config.MigrateDBEnabled {
+		logger.Debug(nil, "database migration started")
+		if err = migrateDB(); err != nil {
+			logger.FatalLog("failed to migrate database: " + err.Error())
+			return
+		}
+		logger.SysLog("database migrated")
+	} else {
+		logger.SysLog("database migration skipped (MIGRATE_DB_ENABLED=false)")
 	}
-	logger.SysLog("database migrated")
 }
 
 func GetDbConn() (*gorm.DB, error) {
@@ -151,6 +155,9 @@ func migrateDB() error {
 		return err
 	}
 	if err = DB.AutoMigrate(&EnterpriseConfig{}); err != nil {
+		return err
+	}
+	if err := DB.AutoMigrate(&ShareRecord{}); err != nil {
 		return err
 	}
 	return nil

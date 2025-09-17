@@ -11,6 +11,7 @@ declare namespace Link {
     created_by: number
     created_time: number
     updated_time: number
+    has_share_account: boolean
     visible?: boolean
   }
 }

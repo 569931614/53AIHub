@@ -10,6 +10,17 @@ export const enterprise = {
   },
   getSMTPInfo(type: string) {
     return service.get(`/api/enterprise-configs/${type}/enabled`).catch(handleError)
+  },
+  async update(
+    id: number,
+    data: {
+      display_name: string
+      logo: string
+      language: string
+      template_type: string
+    }
+  ) {
+    return service.put(`/api/enterprises/${id}`, data).catch(handleError)
   }
 }
 

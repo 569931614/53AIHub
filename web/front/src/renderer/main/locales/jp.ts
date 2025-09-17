@@ -86,7 +86,9 @@ export default {
     collapse_more: 'もっと見る',
     or: 'または',
     later: '後で',
-    allow_to: 'プロンプトをコピーしました。"{name}"サイトにアクセスしますか'
+    allow_to: 'プロンプトをコピーしました。"{name}"サイトにアクセスしますか',
+    ai_generated: '内容由AI生成，仅供参考',
+    back_home: '返回站点首页'
   },
 
   // ステータス通知
@@ -160,7 +162,8 @@ export default {
     view_more: 'もっと見る',
     click_upload: 'クリックアップロード',
     view: '表示',
-    delete: '削除'
+    delete: '削除',
+    select_all: '全選択'
   },
 
   file: {
@@ -197,6 +200,7 @@ export default {
     remark: ' 備考 ',
     account_alias: '電話番号',
     password: 'パスワード',
+    password_placeholder: 'パスワードを入力してください',
     email: 'メールアドレス',
     new_email: '新しいメールアドレス',
     mobile: '電話番号',
@@ -218,6 +222,7 @@ export default {
     password_length: 'パスワードは8〜20文字である必要があります',
     password_format: 'パスワードは大文字、小文字、数字を含む必要があります',
     password_not_match: '入力されたパスワードが一致しません',
+    password_no_chinese: 'パスワードには中国語の文字を含めることができません',
     change: '変更',
     existing_mobile: 'この電話番号は既に登録されています。このアカウントでログインしてください。',
     existing_email:
@@ -306,7 +311,11 @@ export default {
     completion_completed: '深層思考が完了しました',
     completion_thinking: '深度思考中...',
     completion_scene: '関連シーン：',
-    completion_next_action: '関連シナリオ：次のアクション'
+    completion_next_action: '関連シナリオ：次のアクション',
+
+    not_found_url: 'URL が見つかりません。エージェントの設定を確認してください',
+    completion_share_link: '対話リンクがコピーされました、すぐに共有してください~',
+    no_available_agent_desc: '很遺憾，你要訪問的智能體已不存在，去看看其他有趣的智能體吧～'
   },
 
   // ナレッジベース関連
@@ -358,7 +367,8 @@ export default {
     direct_access: ' 直接アクセス ',
     click_access: ' クリックでアクセス ',
     account_access: ' 共有アカウント ',
-    account_text: ' 以下は共有のアカウントとパスワードです。本人専用です'
+    account_text: ' 以下は共有のアカウントとパスワードです。本人専用です',
+    account_text2: ' 以下は共有のアカウントとパスワードです。本人専用です'
   },
 
   // スペース関連
@@ -532,5 +542,32 @@ export default {
   },
   table: {
     footer_text: '合計 {total} 項目'
+  },
+  guide: {
+    title: '53AI Hubをご利用いただきありがとうございます',
+    description:
+      '現在は初期化段階です。サイト情報などの基本情報を入力し、システム基本設定の構築に使用してください',
+    website_info: 'サイト情報',
+    website_setting: 'アカウント設定',
+    website_success: 'インストール完了',
+    website_info_name: 'サイト名',
+    website_info_name_placeholder: 'サイト名を入力してください',
+    website_info_logo: 'サイトロゴ',
+    website_info_logo_placeholder: 'ロゴをアップロードしてください',
+    website_info_logo_change: '変更',
+    website_info_logo_upload: 'アップロード',
+    website_info_logo_tip:
+      'アスペクト比1:1の正方形ロゴをアップロードしてください（推奨サイズ：512×512px）。対応形式：PNG/JPG。ファイルサイズは2MB以内に限ります',
+    website_style: 'サイトスタイル',
+    website_info_language: 'デフォルト言語',
+    website: 'ウェブサイトスタイル',
+    software: 'ソフトウェアスタイル',
+    init_success: '初期化が成功しました！',
+    jump_now: 'すぐに移動',
+    jump_tip: '{count}秒後にホームページに自動的に移動します...',
+    next: '次のステップ',
+    init: '初期化',
+    confirm_password: 'パスワードの確認',
+    confirm_password_placeholder: '再度パスワードを確認してください'
   }
 }

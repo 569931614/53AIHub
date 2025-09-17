@@ -4,10 +4,29 @@
       {{ $t('account_register') }}
     </h4>
 
+    <!-- <ElFormItem>
+      <template #label>
+        <span class="text-[#1D1E1F]">{{ $t('login.select_register_way') }}</span>
+      </template>
+      <ElRadioGroup v-model="form.username_type" @change="onUsernameTypeChange">
+        <ElRadio label="email">
+          {{ $t('login.email_validate') }}
+        </ElRadio>
+        <ElRadio label="mobile">
+          {{ $t('login.mobile_validate') }}
+        </ElRadio>
+      </ElRadioGroup>
+    </ElFormItem> -->
+
     <ElFormItem
       prop="username"
       class="relative"
-      :rules="generateInputRules({ message: 'login.mobile_placeholder', validator: ['text', 'mobile'] })"
+      :rules="
+        generateInputRules({
+          message: `login.${form.username_type}_placeholder`,
+          validator: ['text', form.username_type],
+        })
+      "
     >
       <template #label>
         <span class="text-[#1D1E1F]">{{ $t('account') }}</span>
@@ -18,12 +37,13 @@
         size="large"
         autocomplete="new-username"
         name="prevent_autofill_username"
-        :placeholder="$t(`login.mobile_placeholder`)"
+        :placeholder="$t(`login.${form.username_type}_placeholder`)"
         clearable
         @blur="checkAccount"
+        @input="checkAccountValidation"
       />
       <div v-if="account_exists" class="absolute -bottom-5 left-0 text-red-500 text-xs">
-        {{ $t('login.account_exists') }}
+        {{ $t(`login.${form.username_type}_exists`) }}
         <ElButton type="primary" link size="small" class="!p-0 !bg-transparent -ml-1" @click="onLogin">
           {{ $t('action_login') }}
         </ElButton>
@@ -41,7 +61,9 @@
         ref="verification_code_input_ref"
         v-model="form.verification_code"
         :account="form.username"
-        :disabled="account_exists"
+        :account-type="form.username_type"
+        :disabled="account_exists || !isAccountValid"
+        :maxlength="form.username_type === 'mobile' ? 4 : 6"
       />
     </ElFormItem>
     <ElFormItem
@@ -94,11 +116,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, nextTick } from 'vue'
 import { useEnterpriseStore, useUserStore } from '@/stores'
 import { generateInputRules } from '@/utils/form-rule'
 import { authApi } from '@/api/modules/auth'
 import eventBus from '@/utils/event-bus'
+import { validateFormField } from '@/utils/form-validator'
+
+interface FormType {
+  username: string
+  username_type: 'email' | 'mobile'
+  password: string
+  verification_code: string
+}
 
 const emits = defineEmits<{
   (e: 'login'): void
@@ -108,13 +138,20 @@ const user_store = useUserStore()
 const enterprise_store = useEnterpriseStore()
 const form_ref = ref()
 const verification_code_input_ref = ref()
-const form = reactive({
+const form = reactive<FormType>({
+  username_type: 'mobile',
   username: '',
   verification_code: '',
   password: '',
 })
 const submitting = ref(false)
 const account_exists = ref(false)
+const isAccountValid = ref(false)
+
+// 检查账号验证状态
+const checkAccountValidation = async () => {
+  isAccountValid.value = await validateFormField(form_ref, 'username')
+}
 
 onMounted(() => {
   const { access_token } = user_store.info
@@ -142,8 +179,10 @@ const onRegister = async () => {
     ElMessage.warning(window.$t('login.account_exists'))
     return (submitting.value = false)
   }
-  valid = await verification_code_input_ref.value.validateCode()
-  if (!valid) return (submitting.value = false)
+  if (form.username_type === 'mobile') {
+    valid = await verification_code_input_ref.value.validateCode()
+    if (!valid) return (submitting.value = false)
+  }
   await user_store
     .login({
       data: {
@@ -178,6 +217,14 @@ const checkAccount = async () => {
   const { exists = false } = await authApi.checkAccount({ data: { account: form.username } })
   account_exists.value = exists
   return exists
+}
+
+const onUsernameTypeChange = async () => {
+  form.username = ''
+  verification_code_input_ref.value.reset()
+  await nextTick()
+  form_ref.value.clearValidate('username')
+  form_ref.value.clearValidate('verification_code')
 }
 
 defineExpose({

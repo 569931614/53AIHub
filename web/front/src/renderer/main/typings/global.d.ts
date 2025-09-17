@@ -1,4 +1,4 @@
-// / <reference types="vite/client" />
+/// <reference types="vite/client" />
 
 declare global {
   interface Window {
@@ -8,8 +8,14 @@ declare global {
     electron?: any
     $isElectron?: boolean
     $noop?: () => void
+
+    api_host: string
+    qyy_host: string
+    admin_url: string
   }
 }
+
+export {}
 
 // declare module '@vue/runtime-core' {
 //   interface ComponentCustomProperties {

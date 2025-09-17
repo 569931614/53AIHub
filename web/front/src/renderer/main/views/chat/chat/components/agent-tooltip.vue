@@ -3,8 +3,8 @@
     ref="tooltipRef"
     effect="light"
     trigger="click"
-    :popper-class="['el-popper--plain', { 'el-popper--m': isMobile }]"
-    :placement="isMobile ? 'bottom' : 'top-start'"
+    :popper-class="['el-popper--plain', { 'el-popper--m': isSmScreen }]"
+    :placement="isSmScreen ? 'bottom' : 'top-start'"
   >
     <template #content>
       <div class="p-5 w-[596px] max-md:w-full">
@@ -64,9 +64,12 @@
 
 <script setup lang="ts">
 import { Close, Search } from '@element-plus/icons-vue'
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 
 import { useAgentStore } from '@/stores/modules/agent'
+import { useBasicLayout } from '@/hooks/useBasicLayout'
+
+const { isSmScreen } = useBasicLayout()
 
 const emits = defineEmits<{
   (e: 'select', data: Agent.State): void
@@ -75,22 +78,6 @@ const emits = defineEmits<{
 const agentStore = useAgentStore()
 
 const tooltipRef = ref()
-
-const isMobile = ref(false)
-
-// 监听窗口大小变化
-const updatePlacement = () => {
-  isMobile.value = window.innerWidth < 768 // md breakpoint
-}
-
-onMounted(() => {
-  updatePlacement()
-  window.addEventListener('resize', updatePlacement)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updatePlacement)
-})
 
 const state: {
   keyword: string
