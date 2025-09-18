@@ -13,7 +13,7 @@ import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
-import conditionalCompilation from './vite-plugins/conditional-compilation.ts'
+import conditionalCompilation from './vite-plugins/conditional-compilation'
 
 // import { visualizer } from 'rollup-plugin-visualizer'
 
@@ -107,7 +107,7 @@ export default defineConfig(env => {
       allowedHosts: ['hubtest.53ai.com', 'hub.53ai.com', 'kmtest.53ai.com', 'km.53ai.com'],
     },
     build: {
-      outDir: 'dist',
+      outDir: '../../api/static/console',
       reportCompressedSize: false,
       sourcemap: false,
       commonjsOptions: {
