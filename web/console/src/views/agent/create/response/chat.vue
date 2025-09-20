@@ -193,21 +193,34 @@ const onSendConfirm = async (question: string, user_files?: any[], type = '') =>
   })
   active_chat_index = chat_list.value.length - 1
   active_chat_data = chat_list.value[active_chat_index] || {}
-  let messages = [{ role: 'user', content: question }]
-  if (user_files.length) {
-    messages = [
-      {
-        role: 'user',
-        content: JSON.stringify([
-          {
-            type: 'text',
-            content: question,
-          },
-          ...user_files,
-        ]),
-      },
-    ]
+  // Build multi-turn message history
+  const historyMessages: any[] = []
+  const toUserContent = (q: string, files: any[]) => {
+    if (files && files.length) {
+      return JSON.stringify([{ type: 'text', content: q }, ...(files || [])])
+    }
+    return q
   }
+  // Include prior rounds (before the current one)
+  const prior = chat_list.value.slice(0, active_chat_index)
+  for (const item of prior) {
+    historyMessages.push({
+      role: 'user',
+      content: toUserContent(item.question.content, item.question.user_files || []),
+    })
+    if (item.answer && item.answer.content) {
+      historyMessages.push({
+        role: item.answer.role || 'assistant',
+        content: item.answer.content,
+      })
+    }
+  }
+  // Current user message
+  const currentUserMessage = {
+    role: 'user',
+    content: toUserContent(question, user_files),
+  }
+  const messages = [...historyMessages, currentUserMessage]
 
   conversationStore
     .chat({

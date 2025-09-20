@@ -598,17 +598,30 @@ const sendMessage = async (query: string, user_files: any[]) => {
   abortController.value = new AbortController()
   let processedLength = 0
 
-  let content = query
-  if (user_files.length > 0) {
-    content = JSON.stringify([{ type: 'text', content: query }, ...user_files])
+  // Build multi-turn message history
+  const toUserContent = (q: string, files: any[]) => {
+    if (files && files.length > 0) {
+      return JSON.stringify([{ type: 'text', content: q }, ...files])
+    }
+    return q
   }
+  const historyMessages: any[] = []
+  // Include prior rounds (exclude the message being sent now)
+  const priorMessages = state.messageList.slice(0, -1)
+  for (const m of priorMessages) {
+    historyMessages.push({ role: 'user', content: toUserContent(m.query, m.user_files || []) })
+    if (m.answer) {
+      historyMessages.push({ role: 'assistant', content: m.answer })
+    }
+  }
+  const currentContent = toUserContent(query, user_files)
 
   try {
     await chatApi.completions(
       {
         conversation_id,
         model: `agent-${agent_id}`,
-        messages: [{ content, role: 'user' }],
+        messages: [...historyMessages, { content: currentContent, role: 'user' }],
         frequency_penalty: 0,
         presence_penalty: 0,
         stream: true,
