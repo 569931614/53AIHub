@@ -27,9 +27,5 @@ export const useChannelStore = defineStore('channel-store', {
       const list = this.channel_models.filter((item: any) => item.owned_by === owner)
       return deepCopy(list)
     },
-    async loadCozeWorkspaceList() {
-      const list = await channelApi.cozeWorkspaceList()
-      return list
-    },
   },
 })

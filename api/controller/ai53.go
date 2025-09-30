@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/53AI/53AIHub/common/logger"
@@ -19,11 +20,13 @@ import (
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param provider_id query int false "Provider ID (optional, for backward compatibility)"
 // @Success 200 {object} model.CommonResponse{data=[]ai53.AppResponse}
 // @Router /api/53ai/bots [get]
 func Get53AIAllBots(c *gin.Context) {
 	eid := config.GetEID(c)
-	provider, err := model.GetFirstProviderByEidAndProviderType(eid, int64(model.ProviderType53AI))
+	providerID, _ := strconv.ParseInt(c.DefaultQuery("provider_id", "0"), 10, 64)
+	provider, err := model.GetProviderByEidAndProviderTypeWithOptionalID(eid, int64(model.ProviderType53AI), providerID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return
@@ -51,11 +54,13 @@ func Get53AIAllBots(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param provider_id query int false "Provider ID (optional, for backward compatibility)"
 // @Success 200 {object} model.CommonResponse{data=[]ai53.AppResponse}
 // @Router /api/53ai/workflows [get]
 func Get53AIAllWorkflows(c *gin.Context) {
 	eid := config.GetEID(c)
-	provider, err := model.GetFirstProviderByEidAndProviderType(eid, int64(model.ProviderType53AI))
+	providerID, _ := strconv.ParseInt(c.DefaultQuery("provider_id", "0"), 10, 64)
+	provider, err := model.GetProviderByEidAndProviderTypeWithOptionalID(eid, int64(model.ProviderType53AI), providerID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return
@@ -194,6 +199,7 @@ func Update53AIWorkflowChannel(provider model.Provider, apps []ai53.AppResponse)
 // @Produce json
 // @Security BearerAuth
 // @Param botId path string true "机器人ID (支持 bot-xxx, workflow-xxx 或直接 xxx 格式)"
+// @Param provider_id query int false "Provider ID (optional, for backward compatibility)"
 // @Success 200 {object} model.CommonResponse{data=interface{}}
 // @Router /api/53ai/parameters/{botId} [get]
 func Get53AIAppParameters(c *gin.Context) {
@@ -210,7 +216,8 @@ func Get53AIAppParameters(c *gin.Context) {
 	eid := config.GetEID(c)
 
 	// 3. 获取 53AI Provider (遵循 53AI 渠道模式)
-	provider, err := model.GetFirstProviderByEidAndProviderType(eid, int64(model.ProviderType53AI))
+	providerID, _ := strconv.ParseInt(c.DefaultQuery("provider_id", "0"), 10, 64)
+	provider, err := model.GetProviderByEidAndProviderTypeWithOptionalID(eid, int64(model.ProviderType53AI), providerID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return

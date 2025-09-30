@@ -52,10 +52,12 @@ const PLATFORM_CONFIG = {
     // 需不需要授权
     auth: false,
     // 智能体列表
+    label: window.$t('provider_platform.prompt'),
     agents: [
       {
         id: AGENT_TYPE.PROMPT,
         name: AGENT_TYPE.PROMPT,
+        label: window.$t('agent_app.prompt'),
       },
     ],
   },
@@ -64,10 +66,12 @@ const PLATFORM_CONFIG = {
     channelValue: 34,
     category: 'intelligent_agent_platform',
     auth: true,
+    label: window.$t('provider_platform.coze_cn'),
     agents: [
       {
         id: AGENT_TYPE.COZE_AGENT_CN,
         name: AGENT_TYPE.COZE_AGENT_CN,
+        label: window.$t('agent_app.coze_agent_cn'),
       },
       {
         id: AGENT_TYPE.COZE_WORKFLOW_CN,
@@ -82,15 +86,18 @@ const PLATFORM_CONFIG = {
     channelValue: 1010,
     category: 'intelligent_agent_platform',
     auth: true,
+    label: window.$t('provider_platform.coze_osv'),
     agents: [
       {
         id: AGENT_TYPE.COZE_AGENT_OSV,
         name: AGENT_TYPE.COZE_AGENT_OSV,
+        label: window.$t('agent_app.coze_agent_osv'),
       },
       {
         id: AGENT_TYPE.COZE_WORKFLOW_OSV,
         name: AGENT_TYPE.COZE_WORKFLOW_OSV,
         mode: AGENT_MODES.COMPLETION,
+        label: window.$t('agent_app.coze_workflow_osv'),
         visible: false,
       },
     ],
@@ -100,10 +107,12 @@ const PLATFORM_CONFIG = {
     channelValue: 1005,
     category: 'cloud_computing_platform',
     auth: true,
+    label: window.$t('provider_platform.app_builder'),
     agents: [
       {
         id: AGENT_TYPE.APP_BUILDER,
         name: AGENT_TYPE.APP_BUILDER,
+        label: window.$t('agent_app.app_builder'),
       },
     ],
   },
@@ -112,15 +121,18 @@ const PLATFORM_CONFIG = {
     channelValue: 1002,
     category: 'intelligent_agent_platform',
     auth: true,
+    label: window.$t('provider_platform.53ai'),
     agents: [
       {
         id: AGENT_TYPE['53AI_AGENT'],
         name: AGENT_TYPE['53AI_AGENT'],
+        label: window.$t('agent_app.53ai_agent'),
       },
       {
         id: AGENT_TYPE['53AI_WORKFLOW'],
         name: AGENT_TYPE['53AI_WORKFLOW'],
         mode: AGENT_MODES.COMPLETION,
+        label: window.$t('agent_app.53ai_workflow'),
         visible: false,
       },
     ],
@@ -130,15 +142,18 @@ const PLATFORM_CONFIG = {
     providerValue: 1001,
     category: 'intelligent_agent_platform',
     auth: false,
+    label: window.$t('provider_platform.dify'),
     agents: [
       {
         id: AGENT_TYPE.DIFY_AGENT,
         name: AGENT_TYPE.DIFY_AGENT,
+        label: window.$t('agent_app.dify_agent'),
       },
       {
         id: AGENT_TYPE.DIFY_WORKFLOW,
         name: AGENT_TYPE.DIFY_WORKFLOW,
         mode: AGENT_MODES.COMPLETION,
+        label: window.$t('agent_app.dify_workflow'),
         visible: false,
       },
     ],
@@ -148,10 +163,12 @@ const PLATFORM_CONFIG = {
     providerValue: 1003,
     category: 'cloud_computing_platform',
     auth: false,
+    label: window.$t('provider_platform.bailian'),
     agents: [
       {
         id: AGENT_TYPE.BAILIAN,
         name: AGENT_TYPE.BAILIAN,
+        label: window.$t('agent_app.bailian'),
       },
     ],
   },
@@ -160,10 +177,12 @@ const PLATFORM_CONFIG = {
     providerValue: 1004,
     category: 'cloud_computing_platform',
     auth: false,
+    label: window.$t('provider_platform.volcengine'),
     agents: [
       {
         id: AGENT_TYPE.VOLCENGINE,
         name: AGENT_TYPE.VOLCENGINE,
+        label: window.$t('agent_app.volcengine'),
       },
     ],
   },
@@ -172,10 +191,12 @@ const PLATFORM_CONFIG = {
     providerValue: 1006,
     category: 'intelligent_agent_platform',
     auth: false,
+    label: window.$t('provider_platform.yuanqi'),
     agents: [
       {
         id: AGENT_TYPE.YUANQI,
         name: AGENT_TYPE.YUANQI,
+        label: window.$t('agent_app.yuanqi'),
       },
     ],
   },
@@ -184,15 +205,18 @@ const PLATFORM_CONFIG = {
     providerValue: 22,
     category: 'intelligent_agent_platform',
     auth: false,
+    label: window.$t('provider_platform.fastgpt'),
     agents: [
       {
         id: AGENT_TYPE.FASTGPT_AGENT,
         name: AGENT_TYPE.FASTGPT_AGENT,
+        label: window.$t('agent_app.fastgpt_agent'),
       },
       {
         id: AGENT_TYPE.FASTGPT_WORKFLOW,
         name: AGENT_TYPE.FASTGPT_WORKFLOW,
         mode: AGENT_MODES.COMPLETION,
+        label: window.$t('agent_app.fastgpt_workflow'),
         visible: false,
       },
     ],
@@ -202,10 +226,12 @@ const PLATFORM_CONFIG = {
     providerValue: 1008,
     category: 'intelligent_agent_platform',
     auth: false,
+    label: window.$t('provider_platform.maxkb'),
     agents: [
       {
         id: AGENT_TYPE.MAXKB_AGENT,
         name: AGENT_TYPE.MAXKB_AGENT,
+        label: window.$t('agent_app.maxkb_agent'),
       },
     ],
   },
@@ -214,11 +240,13 @@ const PLATFORM_CONFIG = {
     channelValue: 1009,
     category: 'intelligent_agent_platform',
     auth: false,
+    label: window.$t('provider_platform.n8n'),
     agents: [
       {
         id: AGENT_TYPE.N8N_WORKFLOW,
         name: AGENT_TYPE.N8N_WORKFLOW,
         mode: AGENT_MODES.COMPLETION,
+        label: window.$t('agent_app.n8n_workflow'),
       },
     ],
   },
@@ -231,24 +259,28 @@ const MODEL_CONFIG = {
     owner: 'siliconflow',
     channelType: 44,
     multiple: false,
+    label: window.$t('provider_platform.siliconflow'),
   },
   deepseek: {
     name: 'deepseek',
     owner: 'deepseek',
     channelType: 36,
     multiple: false,
+    label: window.$t('provider_platform.deepseek'),
   },
   openai: {
     name: 'openai',
     owner: 'openai',
     channelType: 1,
     multiple: false,
+    label: window.$t('provider_platform.openai'),
   },
   azure: {
     name: 'azure',
     owner: 'openai',
     channelType: 3,
     multiple: true,
+    label: window.$t('provider_platform.azure'),
   },
   // #ifdef KM
   bailian: {
@@ -256,18 +288,21 @@ const MODEL_CONFIG = {
     owner: 'bailian',
     channelType: 17,
     multiple: false,
+    label: window.$t('provider_platform.bailian'),
   },
   volcengine: {
     name: 'volcengine',
     owner: 'volcengine',
     channelType: 900,
     multiple: false,
+    label: window.$t('provider_platform.volcengine'),
   },
   qianfan: {
     name: 'qianfan',
     owner: 'qianfan',
     channelType: 901,
     multiple: false,
+    label: window.$t('provider_platform.app_builder'),
   },
   // #endif
 } as const
@@ -398,7 +433,7 @@ export const providers: Record<ProviderId, ProviderConfig> = Object.fromEntries(
         id: config.providerValue,
         name: type,
         icon: type,
-        label: `provider_platform.${type}`,
+        label: config.label,
         provider_type: config.providerValue,
         channelId: type as ChannelType,
         agentId: config.agents[0].name as AgentType,
@@ -414,7 +449,7 @@ export const channels: Record<ChannelType, ChannelConfig> = Object.fromEntries(
     createConfig(key, type => ({
       id: type as ChannelType,
       name: type,
-      label: `provider_platform.${type}`,
+      label: config.label,
       icon: type,
       channelType: config.channelValue,
     })),
@@ -430,7 +465,7 @@ export const agents: Record<AgentType, AgentConfig> = Object.fromEntries(
           createConfig(agent.name, type => ({
             id: type as AgentType,
             name: type as AgentType,
-            label: `agent_app.${type}`,
+            label: agent.label,
             icon: `${img_host}/agent/${type.toLowerCase()}.png`,
             channelName: key as ChannelType,
             channelType: config.channelValue as ChannelValue,
@@ -451,7 +486,7 @@ export const models = Object.fromEntries(
     createConfig(key, type => ({
       id: type as ModelType,
       name: type,
-      label: `provider_platform.${type}`,
+      label: config.label,
       icon: type,
       owner: config.owner,
       channelType: config.channelType,
@@ -526,6 +561,9 @@ export const CHANNEL_TYPE_VALUE_MAP = new Map([
   ...Object.entries(agents).map(([key, value]) => [key, value.channelType] as const),
 ])
 // 工具函数
+export const getProviderByProviderType = (providerType: ProviderType): ProviderConfig =>
+  providers[providerType] || ({} as ProviderConfig)
+
 export const getProviderByAgentId = (agentId: AgentType) =>
   agents[agentId]?.providerId && providers[agents[agentId].providerId]
 

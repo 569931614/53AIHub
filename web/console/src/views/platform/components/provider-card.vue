@@ -9,14 +9,14 @@
         :src="$getRealPath({ url: `/images/platform/${provider.icon}.png` })"
       />
       <div class="text-[#1B2B51] font-semibold">
-        {{ $t(provider.label) }}
+        {{ provider.label }}
       </div>
     </div>
     <div class="text-xs text-[#4F5052] px-5 box-border">
-      <template v-if="!provider.auth">
-        {{ $t('connecting_agent_total', { total: provider.agentTotal }) }}
-      </template>
-      <template v-else-if="provider.connected && provider.authed_time">
+      <!-- <template> -->
+      {{ $t('connecting_agent_total', { total: provider.agentTotal }) }}
+      <!-- </template> -->
+      <!-- <template v-else-if="provider.connected && provider.authed_time">
         {{ $t('connected') }} · {{ $t('authorized_at') }} {{ provider.authed_time.slice(0, 16) }}
       </template>
       <template v-else-if="provider.connected">
@@ -24,14 +24,14 @@
       </template>
       <template v-else>
         {{ $t('not_connected') }}
-      </template>
+      </template> -->
     </div>
     <div class="flex-1 w-full" />
     <div class="w-full h-11 flex border-t box-border">
       <template v-if="!provider.auth">
         <ElButton
           class="flex-1 h-[46px] text-[#3664EF] !border-none !outline-none rounded-none"
-          type="text"
+          link
           size="default"
           @click.stop="$emit('authorize', { data: provider })"
         >
@@ -75,7 +75,7 @@
           size="default"
           @click.stop="$emit('authorize', { data: provider })"
         >
-          {{ $t('action_authorize') }}
+          {{ $t('action_manage') }}
         </ElButton>
       </template>
     </div>

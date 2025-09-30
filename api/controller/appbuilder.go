@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/53AI/53AIHub/common/logger"
@@ -19,11 +20,13 @@ import (
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param provider_id query int false "Provider ID (optional, for backward compatibility)"
 // @Success 200 {object} model.CommonResponse{data=[]appbuilder.AppInfo}
 // @Router /api/appbuilder/bots [get]
 func GetAppBuilderAllBots(c *gin.Context) {
 	eid := config.GetEID(c)
-	provider, err := model.GetFirstProviderByEidAndProviderType(eid, int64(model.ProviderTypeAppBuilder))
+	providerID, _ := strconv.ParseInt(c.DefaultQuery("provider_id", "0"), 10, 64)
+	provider, err := model.GetProviderByEidAndProviderTypeWithOptionalID(eid, int64(model.ProviderTypeAppBuilder), providerID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return

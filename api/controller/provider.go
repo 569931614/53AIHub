@@ -154,13 +154,15 @@ func DeleteProvider(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param providerType query int false "Provider type filter (0 for all, 1 for coze.cn, 2 for coze.com, 3 for bailian, 4 for volcengine)"
+// @Param name query string false "Provider name filter (supports like search)"
 // @Success 200 {object} model.CommonResponse
 // @Router /api/providers [get]
 // GetProviders Get all provider configurations for current enterprise
 func GetProviders(c *gin.Context) {
 	eid := config.GetEID(c)
 	providerType, _ := strconv.ParseInt(c.DefaultQuery("providerType", "0"), 10, 64)
-	providers, err := model.GetProvidersByEidAndProviderType(eid, providerType)
+	name := c.Query("name")
+	providers, err := model.GetProvidersByEidWithFilters(eid, providerType, name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
 		return

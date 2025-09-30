@@ -10,24 +10,43 @@
     @close="close"
   >
     <div ref="guide_ref" class="gap-3 bg-[#F6F9FC] p-5 mb-4 box-border text-sm text-[#4F5052]">
-      <div class="whitespace-pre-wrap leading-6" v-html="$t('payment.alipay_guide_html', {callback_url: callback_url })" />
-      <ElIcon ref="copy_ref" v-copy="callback_url" class="cursor-pointer ml-1 mt-1 text-[#4F5052] hover:text-[#3664EF]" :size="14">
+      <div
+        class="whitespace-pre-wrap leading-6"
+        v-html="$t('payment.alipay_guide_html', { callback_url: callback_url })"
+      />
+      <ElIcon
+        ref="copy_ref"
+        v-copy="callback_url"
+        class="cursor-pointer ml-1 mt-1 text-[#4F5052] hover:text-[#3664EF]"
+        :size="14"
+      >
         <CopyDocument />
       </ElIcon>
     </div>
 
     <ElForm ref="form_ref" :model="form" label-position="top">
-      <ElFormItem :label="$t('payment.alipay_app_id')" prop="appId" :rules="generateInputRules({ message: 'payment.alipay_app_id_placeholder' })">
+      <ElFormItem
+        :label="$t('payment.alipay_app_id')"
+        prop="appId"
+        :rules="generateInputRules({ message: 'payment.alipay_app_id_placeholder' })"
+      >
         <template #label>
           <span>{{ $t('payment.alipay_app_id') }}</span>
-          <span class="text-[#9A9A9A] gap-1 ml-2 text-sm hover:opacity-80 cursor-pointer" @click="onGuideOpen({ mode: 'app' })">
+          <span
+            class="text-[#9A9A9A] gap-1 ml-2 text-sm hover:opacity-80 cursor-pointer"
+            @click="onGuideOpen({ mode: 'app' })"
+          >
             <svg-icon class="inline translate-y-0.5" name="help" width="14" color="#999" />
             {{ $t('how_get') }}
           </span>
         </template>
         <ElInput v-model="form.appId" size="large" clearable :placeholder="$t('form_input_placeholder')" />
       </ElFormItem>
-      <ElFormItem :label="$t('payment.alipay_mch_id')" prop="privateKey" :rules="generateInputRules({ message: 'payment.alipay_mch_id_placeholder' })">
+      <ElFormItem
+        :label="$t('payment.alipay_mch_id')"
+        prop="privateKey"
+        :rules="generateInputRules({ message: 'payment.alipay_mch_id_placeholder' })"
+      >
         <ElInput v-model="form.privateKey" size="large" clearable :placeholder="$t('form_input_placeholder')" />
       </ElFormItem>
       <ElFormItem
@@ -48,7 +67,14 @@
         </ElButton>
       </div>
     </template>
-    <ElDialog v-model="guideVisible" :title="$t(guideTitle)" :align-center="true" width="860px" destroy-on-close append-to-body>
+    <ElDialog
+      v-model="guideVisible"
+      :title="$t(guideTitle)"
+      :align-center="true"
+      width="860px"
+      destroy-on-close
+      append-to-body
+    >
       <ul class="flex flex-col gap-4 pb-4 box-border max-h-[84vh] overflow-y-auto">
         <li v-for="(item, index) in guideList" :key="index" class="flex flex-col gap-2 text-[#1D1E1F] text-sm">
           <div class="text-wrap break-words whitespace-pre-wrap" v-html="item.title" />
@@ -73,14 +99,13 @@ import { ElIcon } from 'element-plus'
 import { CopyDocument } from '@element-plus/icons-vue'
 
 import { generateInputRules } from '@/utils/form-rule'
-import { settingApi } from '@/api/modules/setting'
+import { paymentApi } from '@/api/modules/payment'
+import { prepareSavePaymentSettingData } from '@/api/modules/payment/transform'
 import { PAYMENT_TYPE } from '@/constants/payment'
 import { useUserStore } from '@/stores/modules/user'
 import { api_host } from '@/utils/config'
 
-
 const emits = defineEmits(['success'])
-
 
 const user_store = useUserStore()
 
@@ -102,7 +127,7 @@ const callback_url = computed(() => {
 })
 
 const open = ({ data = {} } = {}) => {
-  const config = data.pay_config || {}
+  const config = (data as any).pay_config || {}
   form.appId = config.appId || ''
   form.privateKey = config.privateKey || ''
   form.alipayPublicKey = config.alipayPublicKey || ''
@@ -110,33 +135,35 @@ const open = ({ data = {} } = {}) => {
   visible.value = true
   nextTick(() => {
     const copy_hook_el = guide_ref.value?.querySelector('.copy-hook')
-    copy_hook_el?.appendChild(copy_ref.value.$el)
+    copy_hook_el?.appendChild(copy_ref.value?.$el)
   })
 }
-const close = () => {
-  visible.value = false
-  reset()
-}
+
 const reset = () => {
   form.appId = ''
   form.privateKey = ''
   form.alipayPublicKey = ''
+}
+
+const close = () => {
+  visible.value = false
+  reset()
 }
 const handleConfirm = async () => {
   const valid = await form_ref.value.validate()
   if (!valid) return
   submitting.value = true
   const pay_config = JSON.parse(JSON.stringify(form))
-  await settingApi
-    .savePaymentSetting({
-      pay_setting_id: origin_data.value.pay_setting_id,
-      pay_config,
-      extra_config: {},
-      pay_type: PAYMENT_TYPE.ALIPAY
-    })
-    .finally(() => {
-      submitting.value = false
-    })
+  const { preparedData, pay_setting_id } = prepareSavePaymentSettingData({
+    pay_setting_id: (origin_data.value as any).pay_setting_id,
+    pay_config,
+    extra_config: {},
+    pay_type: PAYMENT_TYPE.ALIPAY,
+  })
+
+  await paymentApi.savePaymentSetting({ pay_setting_id, ...preparedData }).finally(() => {
+    submitting.value = false
+  })
   emits('success')
   ElMessage.success(window.$t('action_save_success'))
   close()
@@ -154,22 +181,22 @@ const guideList = computed(() => {
       [
         {
           title: window.$t('alipay_payment.app_guide.step_1'),
-          imageList: ['/images/alipay-payment/app-guide-1.png']
-        }
-      ]
-    ]
+          imageList: ['/images/alipay-payment/app-guide-1.png'],
+        },
+      ],
+    ],
   ])
   return guideListMap.get('app')
 })
 
-const onGuideOpen = ({ mode, title }: { mode: string }) => {
+const onGuideOpen = ({ mode }: { mode: string }) => {
   guideVisible.value = true
 }
 
 defineExpose({
   open,
   close,
-  reset
+  reset,
 })
 </script>
 

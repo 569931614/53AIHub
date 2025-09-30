@@ -252,7 +252,7 @@ import { generateInputRules } from '@/utils/form-rule'
 import { subscriptionApi } from '@/api/modules/subscription'
 import { img_host } from '@/utils/config'
 import { createNewSubscriptionItem, transformSubscriptionItemForSave } from './utils'
-import type { SubscriptionItem, UnitOption } from '@/typings/subscription'
+import type { SubscriptionItem, UnitOption } from '@/types/subscription'
 
 // 响应式数据
 const form_ref = ref<FormInstance>()

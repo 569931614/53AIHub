@@ -9,29 +9,31 @@
             </h3>
           </div>
         </div>
+        <el-form-item :label="$t('module.website_info_name')">
+          <el-select v-model="store.form_data.custom_config.provider_id" size="large" @change="onProviderChange">
+            <el-option v-for="item in providers" :key="item.provider_id" :label="item.name" :value="item.provider_id" />
+          </el-select>
+        </el-form-item>
         <AgentType
           v-model="store.agent_type"
-          :disabled="store.agent_id"
+          :disabled="Boolean(store.agent_id)"
           :options="agentTypeOptions"
-          @change="handleAgentTypeChange"
+          @change="onAgentTypeChange"
         />
 
-        <div class="text-sm text-[#9A9A9A] mb-3">
-          {{ $t('select_agent') }}
-        </div>
-        <!-- :label="$t('agent')" -->
-        <ElFormItem
-          prop="custom_config['chat53ai_agent_id']"
+        <el-form-item
+          :label="$t('select_agent')"
+          prop="custom_config.chat53ai_agent_id"
           :rules="generateInputRules({ message: 'form_select_placeholder' })"
         >
           <SelectPlus
             v-model="store.form_data.custom_config.chat53ai_agent_id"
             :use-i18n="false"
             size="large"
-            :options="store.chat53ai_app_options"
+            :options="bots"
             @change="onBotChange"
           />
-        </ElFormItem>
+        </el-form-item>
 
         <div class="text-base text-[#1D1E1F] font-medium mt-6 mb-4">
           {{ $t('basic_info') }}
@@ -69,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import AgentType from '../components/agent-type.vue'
 import AgentInfo from '../components/agent-info.vue'
 import RelateApp from '../components/relate-agents.vue'
@@ -80,11 +82,14 @@ import FieldInput from '../components/field-input.vue'
 
 import { useAgentFormStore } from '../store'
 import { generateInputRules } from '@/utils/form-rule'
-import { AGENT_TYPES } from '@/constants/platform/config'
+import { AGENT_TYPES, PROVIDER_VALUES } from '@/constants/platform/config'
 
-import { agentApi } from '@/api'
+import providersApi from '@/api/modules/providers/index'
+import { transformProviderList } from '@/api/modules/providers/transform'
+import { ProviderItem } from '@/api/modules/providers/types'
+import agentApi, { BotItem53aiItem, transform53aiBotItem } from '@/api/modules/agent'
 
-defineProps({
+const props = defineProps({
   showChannelConfig: {
     type: Boolean,
     default: false,
@@ -109,16 +114,8 @@ const agentTypeOptions = [
     value: AGENT_TYPES['53AI_WORKFLOW'],
   },
 ]
-
-const handleAgentTypeChange = () => {
-  // store.agent_type = value
-  store.form_data.custom_config.chat53ai_agent_id = ''
-  store.load53aiAppOptions()
-}
-
-const validateForm = async () => {
-  return agentFormRef.value && agentFormRef.value.validate()
-}
+const providers = ref<ProviderItem[]>([])
+const bots = ref<BotItem53aiItem[]>([])
 
 // 53ai 的 agent 选择后，需要设置 那边的开场白和建议问题
 const onBotChange = (data: { value: string; option: any }) => {
@@ -137,34 +134,84 @@ const onBotChange = (data: { value: string; option: any }) => {
   })
 }
 
-const inputUpdateRequest = () => {
-  return agentApi.chat53ai.workflow_field_list(store.form_data.custom_config.chat53ai_agent_id).then(res => {
-    return res.user_input_form.map(item => {
-      const value: any = Object.values(item)[0]
-      return {
-        id: value.id,
-        variable: value.variable,
-        type: value.type_53ai,
-        label: value.label,
-        desc: value.desc,
-        required: value.required,
-        multiple: value.multiple,
-        options: value.options_53ai,
-        max_length: value.max_length,
-        show_word_limit: value.showWordLimit,
-        date_format: value.mode || '',
-        file_type: value.docType,
-        file_accept: value.accept,
-        file_size: value.size,
-        file_limit: value.limit,
-        is_system: true,
-      }
-    })
+const inputUpdateRequest = async () => {
+  const res = await agentApi.chat53ai.workflow_field_list(store.form_data.custom_config.chat53ai_agent_id)
+  return res.user_input_form.map(item => {
+    const value: any = Object.values(item)[0]
+    return {
+      id: value.id,
+      variable: value.variable,
+      type: value.type_53ai,
+      label: value.label,
+      desc: value.desc,
+      required: value.required,
+      multiple: value.multiple,
+      options: value.options_53ai,
+      max_length: value.max_length,
+      show_word_limit: value.showWordLimit,
+      date_format: value.mode || '',
+      file_type: value.docType,
+      file_accept: value.accept,
+      file_size: value.size,
+      file_limit: value.limit,
+      is_system: true,
+    }
   })
 }
 
+const load53aiBots = async () => {
+  const list = await agentApi.chat53ai.bots_list({
+    provider_id: store.form_data.custom_config.provider_id,
+  })
+  bots.value = list.map(transform53aiBotItem)
+}
+const load53aiWorkflows = async () => {
+  const list = await agentApi.chat53ai.workflow_list({
+    provider_id: store.form_data.custom_config.provider_id,
+  })
+  bots.value = list.map(transform53aiBotItem)
+}
+
+const loadApp = async () => {
+  if (store.agent_type === AGENT_TYPES['53AI_AGENT']) {
+    load53aiBots()
+  } else {
+    load53aiWorkflows()
+  }
+}
+
+const onProviderChange = () => {
+  loadApp()
+  store.form_data.custom_config.chat53ai_agent_id = ''
+}
+const loadProviders = async () => {
+  const list = await providersApi.list({
+    providerType: PROVIDER_VALUES['53AI'],
+  })
+  providers.value = transformProviderList(list)
+
+  const customConfig = store.form_data.custom_config
+  if (providers.value.length && !customConfig.provider_id) {
+    customConfig.provider_id = providers.value[0].provider_id
+  }
+  loadApp()
+}
+
+const onAgentTypeChange = () => {
+  store.form_data.custom_config.chat53ai_agent_id = ''
+  loadApp()
+}
+
+onMounted(() => {
+  if (props.showChannelConfig) {
+    loadProviders()
+  }
+})
+
 defineExpose({
-  validateForm,
+  validateForm() {
+    return agentFormRef.value && agentFormRef.value.validate()
+  },
 })
 </script>
 

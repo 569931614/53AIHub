@@ -33,7 +33,7 @@ eventBus.on('user-login-expired', async () => {
   gotoLogin()
 })
 enterprise_store.loadSelfInfo()
-user_store.loadSelfInfo()
+// user_store.loadSelfInfo()
 
 const insertScript = (content: string) => {
   if (!content) return

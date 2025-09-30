@@ -7,16 +7,21 @@
             {{ $t('agent_app.coze_agent_cn') }}
           </h3>
 
-          <div class="flex-center text-[#9A9A9A] gap-1 ml-1" @click="handleOpenDialog">
+          <!-- <div class="flex-center text-[#9A9A9A] gap-1 ml-1" @click="handleOpenDialog">
             <svg-icon name="help" width="14" color="#999" />
             <span class="text-sm">{{ $t('how_get') }}</span>
-          </div>
+          </div> -->
         </div>
       </div>
-
-      <AgentType v-model="store.agent_type" :disabled="store.agent_id" :options="agentTypeOptions" />
-
       <ElForm ref="channelFormRef" :model="channelForm" label-position="top" class="mt-3">
+        <el-form-item :label="$t('module.website_info_name')">
+          <el-select v-model="store.form_data.custom_config.provider_id" size="large">
+            <el-option v-for="item in providers" :key="item.provider_id" :label="item.name" :value="item.provider_id" />
+          </el-select>
+        </el-form-item>
+
+        <AgentType v-model="store.agent_type" :disabled="Boolean(store.agent_id)" :options="agentTypeOptions" />
+
         <el-form-item
           class="mb-9"
           prop="base_url"
@@ -65,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { inject, reactive, ref, watch } from 'vue'
+import { inject, reactive, ref, watch, onMounted } from 'vue'
 import AgentInfo from '../components/agent-info.vue'
 import BaseConfig from '../components/base-config.vue'
 import ExpandConfig from '../components/expand-config.vue'
@@ -75,13 +80,16 @@ import RelateApp from '../components/relate-agents.vue'
 import AgentType from '../components/agent-type.vue'
 
 import { channelApi } from '@/api/modules/channel'
+import providersApi from '@/api/modules/providers/index'
+import { transformProviderList } from '@/api/modules/providers/transform'
+import { ProviderItem } from '@/api/modules/providers/types'
 
 import { useAgentFormStore } from '../store'
 import { generateInputRules } from '@/utils/form-rule'
 
-import { AGENT_MODES, AGENT_TYPES, getAgentByAgentType } from '@/constants/platform/config'
+import { AGENT_MODES, AGENT_TYPES, getAgentByAgentType, PROVIDER_VALUES } from '@/constants/platform/config'
 
-defineProps({
+const props = defineProps({
   showChannelConfig: {
     type: Boolean,
     default: false,
@@ -89,6 +97,8 @@ defineProps({
 })
 
 const store = useAgentFormStore()
+
+const channelFormRef = ref()
 
 const agentTypeOptions = [
   {
@@ -106,7 +116,8 @@ const agentTypeOptions = [
 ]
 
 const channelInfo = inject('channelConfig') || {}
-const channelFormRef = ref()
+const providers = ref<ProviderItem[]>([])
+
 const channelEditable = ref(false)
 const channelForm = reactive({
   key: '',
@@ -163,6 +174,23 @@ const validateForm = async () => {
   channelFormRef.value && channelFormRef.value.validate()
   return agentFormRef.value && agentFormRef.value.validate()
 }
+
+const loadProviders = async () => {
+  const list = await providersApi.list({
+    providerType: PROVIDER_VALUES.COZE_OSV,
+  })
+  providers.value = transformProviderList(list)
+
+  if (providers.value.length && !store.form_data.custom_config.provider_id) {
+    store.form_data.custom_config.provider_id = providers.value[0].provider_id
+  }
+}
+
+onMounted(() => {
+  if (props.showChannelConfig) {
+    loadProviders()
+  }
+})
 
 watch(
   () => store.agent_data,

@@ -24,7 +24,7 @@
           </ElPopover>
         </div>
       </div>
-      <AgentType v-model="store.agent_type" :disabled="store.agent_id" :options="agentTypeOptions" />
+      <AgentType v-model="store.agent_type" :disabled="!!store.agent_id" :options="agentTypeOptions" />
       <ElForm ref="channelFormRef" :model="channelForm" label-position="top" class="mt-3">
         <div class="flex items-center gap-4">
           <ElFormItem

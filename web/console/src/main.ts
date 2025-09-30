@@ -1,5 +1,7 @@
 import { createApp } from 'vue'
 import HubUiX from 'hub-ui-x'
+import i18n from './locales/index'
+
 import App from './App.vue'
 import { setupStore } from './stores'
 import { setupRouter } from './router'
@@ -15,8 +17,6 @@ import 'element-plus/theme-chalk/el-overlay.css'
 import 'hub-ui-x/dist/hub-ui-x.css'
 
 import 'virtual:svg-icons-register'
-
-import i18n from './locales/index'
 
 async function bootstrap() {
   const app = createApp(App)

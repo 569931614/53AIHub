@@ -36,7 +36,7 @@ func StreamHandler(c *gin.Context, resp *http.Response, relayMode int) (*model.E
 	common.SetEventStreamHeaders(c)
 
 	doneRendered := false
-	logger.SysLogf("========== stream data: =======")
+	// logger.SysLogf("========== stream data: =======")
 	for scanner.Scan() {
 		data := scanner.Text()
 		// logger.SysLogf("%s", data)
@@ -89,7 +89,7 @@ func StreamHandler(c *gin.Context, resp *http.Response, relayMode int) (*model.E
 		}
 	}
 
-	logger.SysLogf("========== stream data end =======")
+	// logger.SysLogf("========== stream data end =======")
 	if err := scanner.Err(); err != nil {
 		logger.SysError("error reading stream: " + err.Error())
 	}

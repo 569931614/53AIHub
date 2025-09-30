@@ -68,8 +68,8 @@
             <ElOption
               v-for="item in channels"
               :key="item.label"
-              :label="$t(item.label)"
-              :value="item.label === 'provider_platform.prompt' ? '1,3,44,36' : item.channelType"
+              :label="item.label"
+              :value="item.channelType === 0 ? '1,3,44,36' : item.channelType"
             />
           </ElSelect>
 

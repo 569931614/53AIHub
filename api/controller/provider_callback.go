@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/53AI/53AIHub/common/logger"
 	"github.com/53AI/53AIHub/model"
 	"github.com/53AI/53AIHub/service"
 	"github.com/gin-gonic/gin"
@@ -52,25 +53,46 @@ func CozeCallBack(c *gin.Context) {
 		return
 	}
 
-	provider, err := model.GetFirstProviderByEidAndProviderType(eid, providerType)
+	// Try to parse provider_id from query parameter or state parameter
+	// State parameter format might be: "provider_id=123" or just the provider_id
+	var providerID int64 = 0
+	if providerIDStr := c.Query("provider_id"); providerIDStr != "" {
+		providerID, _ = strconv.ParseInt(providerIDStr, 10, 64)
+	} else if strings.Contains(req.State, "provider_id=") {
+		// Extract provider_id from state parameter
+		parts := strings.Split(req.State, "provider_id=")
+		if len(parts) > 1 {
+			providerIDStr := strings.Split(parts[1], "&")[0] // Get first part before any other parameters
+			providerID, _ = strconv.ParseInt(providerIDStr, 10, 64)
+		}
+	}
+
+	provider, err := model.GetProviderByEidAndProviderTypeWithOptionalID(eid, providerType, providerID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.NotFound.ToResponse(err))
 		return
 	}
 
-	// 根据实际请求获取scheme
-	var scheme string
-	if c.Request.TLS != nil {
-		scheme = "https"
-	} else if proto := c.Request.Header.Get("X-Forwarded-Proto"); proto != "" {
-		scheme = proto
-	} else {
-		scheme = "http"
-	}
+	// Determine scheme based on TLS or forwarded headers
+	scheme := "https"
+
+	// 这里是因为coze 就是需要二次验证，但是 nginx 反向代理把 https 的请求换成了 http，所以异常，现在强制所有的都是 https
+	// if c.Request.TLS != nil ||
+	// 	strings.ToLower(c.Request.Header.Get("X-Forwarded-Proto")) == "https" ||
+	// 	strings.ToLower(c.Request.Header.Get("X-Forwarded-Protocol")) == "https" ||
+	// 	strings.ToLower(c.Request.Header.Get("X-Forwarded-Ssl")) == "on" ||
+	// 	strings.ToLower(c.Request.Header.Get("X-Url-Scheme")) == "https" ||
+	// 	c.Request.Header.Get("X-Forwarded-Port") == "443" {
+	// 	scheme = "https"
+	// }
+
+	// Build callback URL with proper host (including port if non-standard)
 	callbackUrl := scheme + "://" + c.Request.Host + c.Request.URL.Path
 	ser := service.CozeService{
 		Provider: provider,
 	}
+
+	logger.SysLogf("callbackUrl: %v", callbackUrl)
 	if err := ser.HandlerAccessTokenByCode(req.Code, callbackUrl); err != nil {
 		c.JSON(http.StatusInternalServerError, model.SystemError.ToResponse(err))
 		return

@@ -4,180 +4,24 @@
 
     <div class="flex-1 flex flex-col bg-white py-8 px-6 mt-3">
       <h1 class="font-semibold text-[#1D1E1F]">CNY</h1>
+      <!-- CNY支付方式 -->
       <div class="mt-5 grid grid-cols-2 gap-5">
-        <div class="border rounded-lg p-5 pb-8 group">
-          <div class="relative w-full flex items-center gap-3">
-            <SvgIcon name="wechat" width="24" />
-            <label class="font-semibold text-[#1D1E1F]">{{ $t('payment.type.wechat') }}</label>
-            <ElTag
-              v-if="wechat_setting_info.pay_status"
-              class="!border-none !bg-[#E3F6E0] !text-[#09BB07]"
-              type="success"
-              size="default"
-            >
-              {{ $t('enabled') }}
-            </ElTag>
-            <div class="flex-1" />
-            <ElDropdown placement="bottom" @command="handleCommand($event, 'wechat')">
-              <div
-                class="!border-none !outline-none p-1 cursor-pointer rounded overflow-hidden invisible group-hover:visible hover:bg-[#F0F0F0]"
-              >
-                <ElIcon class="rotate-90" size="16">
-                  <MoreFilled />
-                </ElIcon>
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="setting">
-                    {{ $t('action_setting') }}
-                  </el-dropdown-item>
-                  <template v-if="wechat_setting_info.pay_setting_id">
-                    <el-dropdown-item v-if="wechat_setting_info.pay_status" command="disable">
-                      {{ $t('action_disable') }}
-                    </el-dropdown-item>
-                    <el-dropdown-item v-else command="enable">
-                      {{ $t('action_enable') }}
-                    </el-dropdown-item>
-                  </template>
-                </el-dropdown-menu>
-              </template>
-            </ElDropdown>
-          </div>
-          <div class="mt-3 text-sm text-[#4F5052]">
-            {{
-              wechat_setting_info.pay_setting_id
-                ? `${$t('setting')} · ${$t('updated_at')}
-							${wechat_setting_info.updated_time.slice(0, 16)}`
-                : $t('not_setting')
-            }}
-          </div>
-        </div>
-        <div class="border rounded-lg p-5 pb-8 group">
-          <div class="relative w-full flex items-center gap-3">
-            <SvgIcon name="alipay" width="24" />
-            <label class="font-semibold text-[#1D1E1F]">{{ $t('payment.type.alipay') }}</label>
-            <ElTag
-              v-if="alipay_setting_info.pay_status"
-              class="!border-none !bg-[#E3F6E0] !text-[#09BB07]"
-              type="success"
-              size="default"
-            >
-              {{ $t('enabled') }}
-            </ElTag>
-            <div class="flex-1" />
-            <ElDropdown placement="bottom" @command="handleCommand($event, 'alipay')">
-              <div
-                class="!border-none !outline-none p-1 cursor-pointer rounded overflow-hidden invisible group-hover:visible hover:bg-[#F0F0F0]"
-              >
-                <ElIcon class="rotate-90" size="16">
-                  <MoreFilled />
-                </ElIcon>
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="setting">
-                    {{ $t('action_setting') }}
-                  </el-dropdown-item>
-                  <template v-if="alipay_setting_info.pay_setting_id">
-                    <el-dropdown-item v-if="alipay_setting_info.pay_status" command="disable">
-                      {{ $t('action_disable') }}
-                    </el-dropdown-item>
-                    <el-dropdown-item v-else command="enable">
-                      {{ $t('action_enable') }}
-                    </el-dropdown-item>
-                  </template>
-                </el-dropdown-menu>
-              </template>
-            </ElDropdown>
-          </div>
-          <div class="mt-3 text-sm text-[#4F5052]">
-            {{
-              alipay_setting_info.pay_setting_id
-                ? `${$t('setting')} · ${$t('updated_at')}
-							${alipay_setting_info.updated_time.slice(0, 16)}`
-                : $t('not_setting')
-            }}
-          </div>
-        </div>
-        <div class="border rounded-lg p-5 pb-8 group">
-          <div class="relative w-full flex items-center gap-3">
-            <SvgIcon name="manual-pay" width="24" />
-            <label class="font-semibold text-[#1D1E1F]">{{ $t('payment.type.manual') }}</label>
-            <ElTag
-              v-if="manual_setting_info.pay_status"
-              class="!border-none !bg-[#E3F6E0] !text-[#09BB07]"
-              type="success"
-              size="default"
-            >
-              {{ $t('enabled') }}
-            </ElTag>
-            <div class="flex-1" />
-            <ElDropdown placement="bottom" @command="handleCommand($event, 'manual')">
-              <div
-                class="!border-none !outline-none p-1 cursor-pointer rounded overflow-hidden invisible group-hover:visible hover:bg-[#F0F0F0]"
-              >
-                <ElIcon class="rotate-90" size="16">
-                  <MoreFilled />
-                </ElIcon>
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="setting">
-                    {{ $t('action_setting') }}
-                  </el-dropdown-item>
-                  <template v-if="manual_setting_info.pay_setting_id">
-                    <el-dropdown-item v-if="manual_setting_info.pay_status" command="disable">
-                      {{ $t('action_disable') }}
-                    </el-dropdown-item>
-                    <el-dropdown-item v-else command="enable">
-                      {{ $t('action_enable') }}
-                    </el-dropdown-item>
-                  </template>
-                </el-dropdown-menu>
-              </template>
-            </ElDropdown>
-          </div>
-          <div class="mt-3 text-sm text-[#4F5052]">
-            {{
-              manual_setting_info.pay_setting_id
-                ? `${$t('setting')} · ${$t('updated_at')}
-							${manual_setting_info.updated_time.slice(0, 16)}`
-                : $t('not_setting')
-            }}
-          </div>
-        </div>
+        <!-- 微信支付 -->
+        <PaymentCard :setting-info="wechat_setting_info" type="wechat" @command="handleCommand" />
+
+        <!-- 支付宝 -->
+        <PaymentCard :setting-info="alipay_setting_info" type="alipay" @command="handleCommand" />
+
+        <!-- 手动支付 -->
+        <PaymentCard :setting-info="manual_setting_info" type="manual" @command="handleCommand" />
       </div>
+      <!-- USD支付方式 -->
       <h1 class="mt-10 font-semibold text-[#1D1E1F] opacity-60">USD</h1>
       <div class="mt-5 grid grid-cols-2 gap-5 opacity-60">
-        <div class="flex-1 border border-[#E6E8EB] rounded-lg p-5 pb-8 group">
-          <div class="relative w-full flex items-center gap-3">
-            <SvgIcon name="paypal" width="24" />
-            <label class="font-semibold text-[#1D1E1F]">{{ $t('payment.type.paypal') }}</label>
-            <div class="flex-1" />
-            <ElDropdown placement="bottom" @command="handleCommand($event, 'paypal')">
-              <div
-                class="!border-none !outline-none p-1 cursor-pointer rounded overflow-hidden invisible group-hover:visible hover:bg-[#F0F0F0]"
-              >
-                <ElIcon class="rotate-90" size="16">
-                  <MoreFilled />
-                </ElIcon>
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="setting">
-                    {{ $t('action_setting') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="enable">
-                    {{ $t('action_enable') }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </ElDropdown>
-          </div>
-          <div class="mt-3 text-sm text-[#4F5052]">
-            {{ $t('not_setting') }}
-          </div>
-        </div>
+        <!-- PayPal支付（暂未开放） -->
+        <PaymentCard :setting-info="getPaymentSettingInfo('paypal')" type="paypal" @command="handleCommand" />
+
+        <!-- 预留位置 -->
         <div class="flex-1 rounded-lg p-5 pb-8 group" />
       </div>
     </div>
@@ -189,76 +33,140 @@
 </template>
 
 <script setup lang="ts">
-import { MoreFilled } from '@element-plus/icons-vue'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import WechatSettingDialog from './components/wechat-setting-dialog.vue'
 import ManualSettingDialog from './components/manual-setting-dialog.vue'
 import AlipaySettingDialog from './components/alipay-setting-dialog.vue'
+import PaymentCard from './components/payment-card.vue'
 
-import eventBus from '@/utils/event-bus'
-import { settingApi } from '@/api/modules/setting'
-import { PAYMENT_TYPE } from '@/constants/payment'
+// 使用新的支付API模块
+import { paymentApi } from '@/api/modules/payment'
+import { transformPaymentSettingList, transformToPaymentSettingMap } from '@/api/modules/payment/transform'
+import { PAYMENT_COMMAND, PAYMENT_STATUS } from '@/constants/payment'
+import type { PaymentSettingMap, PaymentSetting } from '@/api/modules/payment/types'
 import TipConfirm from '@/components/TipConfirm/setup'
-
 import { isInternalNetwork } from '@/utils'
 
+// 对话框引用
 const wechat_setting_ref = ref()
 const manual_setting_ref = ref()
 const alipay_setting_ref = ref()
 
-const wechat_setting_info = ref({})
-const manual_setting_info = ref({})
-const alipay_setting_info = ref({})
-
-onMounted(() => {
-  refresh()
-  eventBus.on('user-login-success', refresh)
-})
-onUnmounted(() => {
-  eventBus.off('user-login-success', refresh)
+// 支付设置数据
+const paymentSettings = ref<PaymentSettingMap>({
+  wechat: {} as PaymentSetting,
+  alipay: {} as PaymentSetting,
+  manual: {} as PaymentSetting,
+  paypal: {} as PaymentSetting,
 })
 
+/**
+ * 获取支付设置数据
+ */
 const refresh = async () => {
-  const list = await settingApi.paymentSettingList()
-  wechat_setting_info.value = list.find(item => item.pay_type === PAYMENT_TYPE.WECHAT) || {}
-  manual_setting_info.value = list.find(item => item.pay_type === PAYMENT_TYPE.MANUAL) || {}
-  alipay_setting_info.value = list.find(item => item.pay_type === PAYMENT_TYPE.ALIPAY) || {}
+  try {
+    const rawData = await paymentApi.getPaymentSettings()
+    const settingsList = transformPaymentSettingList(rawData)
+    paymentSettings.value = transformToPaymentSettingMap(settingsList)
+  } catch (error) {
+    console.error('获取支付设置失败:', error)
+    ElMessage.error('获取支付设置失败')
+  }
 }
 
-const handleCommand = async (command, type = '') => {
-  if (type === 'paypal') return ElMessage.warning(window.$t('feature_coming_soon'))
+/**
+ * 获取指定类型的支付设置信息
+ * @param type 支付类型
+ * @returns 支付设置信息
+ */
+const getPaymentSettingInfo = (type: keyof PaymentSettingMap) => {
+  return paymentSettings.value[type] || ({} as PaymentSetting)
+}
+
+/**
+ * 获取对话框引用
+ * @param type 支付类型
+ * @returns 对话框引用
+ */
+const getDialogRef = (type: keyof PaymentSettingMap) => {
+  const dialogMap: Record<string, any> = {
+    wechat: wechat_setting_ref,
+    alipay: alipay_setting_ref,
+    manual: manual_setting_ref,
+  }
+  return dialogMap[type]
+}
+
+/**
+ * 更新支付状态
+ * @param pay_setting_id 支付设置ID
+ * @param pay_status 支付状态
+ */
+const updatePaymentStatus = async (pay_setting_id: number, pay_status: boolean) => {
+  try {
+    await paymentApi.updatePaymentStatus(pay_setting_id, { pay_status })
+    const statusText = pay_status ? 'enabled' : 'disabled'
+    ElMessage.success(window.$t(statusText))
+    await refresh()
+  } catch (error) {
+    console.error('更新支付状态失败:', error)
+    ElMessage.error('更新支付状态失败')
+  }
+}
+
+/**
+ * 处理支付操作命令
+ * @param command 操作命令
+ * @param type 支付类型
+ */
+const handleCommand = async (command: string, type: string = '') => {
+  // PayPal功能暂未开放
+  if (type === 'paypal') {
+    ElMessage.warning(window.$t('feature_coming_soon'))
+    return
+  }
+
+  // 内网环境限制（手动支付除外）
   if (isInternalNetwork() && type !== 'manual') {
-    return TipConfirm({
+    TipConfirm({
       title: window.$t('local_config_limited_tip'),
       content: window.$t('local_config_limited_desc', { url: window.location.href }),
       confirmButtonText: window.$t('know_it'),
       showCancelButton: false,
     }).open()
+    return
   }
-  const data =
-    type === 'wechat'
-      ? wechat_setting_info.value
-      : type === 'alipay'
-        ? alipay_setting_info.value
-        : manual_setting_info.value
+
+  const settingInfo = getPaymentSettingInfo(type as keyof PaymentSettingMap)
+
   switch (command) {
-    case 'setting':
-      if (type === 'wechat') wechat_setting_ref.value.open({ data })
-      else if (type === 'alipay') alipay_setting_ref.value.open({ data })
-      else if (type === 'manual') manual_setting_ref.value.open({ data })
+    case PAYMENT_COMMAND.SETTING:
+      // 打开对应的设置对话框
+      const dialogRef = getDialogRef(type as keyof PaymentSettingMap)
+      if (dialogRef) {
+        dialogRef.value.open({ data: settingInfo })
+      }
       break
-    case 'enable':
-      await settingApi.updatePaymentStatus(data.pay_setting_id, true)
-      ElMessage.success(window.$t('enabled'))
-      refresh()
+
+    case PAYMENT_COMMAND.ENABLE:
+      await updatePaymentStatus(settingInfo.pay_setting_id, PAYMENT_STATUS.ENABLED)
       break
-    case 'disable':
-      await settingApi.updatePaymentStatus(data.pay_setting_id, false)
-      ElMessage.success(window.$t('disabled'))
-      refresh()
+
+    case PAYMENT_COMMAND.DISABLE:
+      await updatePaymentStatus(settingInfo.pay_setting_id, PAYMENT_STATUS.DISABLED)
       break
   }
 }
+
+// 计算属性：获取各支付类型的设置信息
+const wechat_setting_info = computed(() => getPaymentSettingInfo('wechat'))
+const alipay_setting_info = computed(() => getPaymentSettingInfo('alipay'))
+const manual_setting_info = computed(() => getPaymentSettingInfo('manual'))
+
+// 组件挂载时获取数据
+onMounted(() => {
+  refresh()
+})
 </script>
 
 <style scoped lang="scss"></style>

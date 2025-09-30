@@ -1,3 +1,95 @@
+<template>
+  <ElDrawer
+    v-model="visible"
+    :title="drawerTitle"
+    size="70%"
+    destroy-on-close
+    append-to-body
+    :close-on-click-modal="false"
+  >
+    <div class="flex items-center justify-between gap-4 mb-4">
+      <div>
+        <ElInput
+          v-model="filterForm.keyword"
+          :prefix-icon="Search"
+          :placeholder="$t('action_search')"
+          size="large"
+          @change="refresh"
+        />
+      </div>
+      <ElButton
+        v-version="{ module: VERSION_MODULE.AGENT, count: all_total, content: $t('version.agent_limit') }"
+        type="primary"
+        size="large"
+        @click="onAgentCreate"
+      >
+        {{ $t('action_add') }}
+      </ElButton>
+    </div>
+
+    <TablePlus
+      header-row-class-name="rounded overflow-hidden"
+      header-cell-class-name="!bg-[#F6F7F8] !h-[60px] !border-none"
+      :data="tableData"
+      :total="tableTotal"
+      :loading="tableLoading"
+      :page="filterForm.offset + 1"
+      :limit="filterForm.limit"
+      @page-size-change="onTableSizeChange"
+      @page-current-change="onTableCurrentChange"
+    >
+      <ElTableColumn prop="date" :label="$t('module.agent')" min-width="180" show-overflow-tooltip>
+        <template #default="{ row }">
+          <div class="flex items-center gap-2 w-full">
+            <img class="flex-none w-8 h-8 rounded-full overflow-hidden" :src="row.logo" alt="" />
+            <div class="flex-1 w-0 text-sm flex flex-col">
+              <div class="text-[#2563EB] truncate">
+                {{ row.name || '--' }}
+              </div>
+              <div v-show="row.description" class="text-xs text-[#808080] truncate">
+                {{ row.description }}
+              </div>
+            </div>
+          </div>
+        </template>
+      </ElTableColumn>
+
+      <ElTableColumn :label="$t('usage_range')" min-width="140" show-overflow-tooltip>
+        <template #default="{ row }">
+          <span :class="{ 'text-[#999]': !row.user_group_names.length }">
+            {{ row.user_group_names.join('、') || '--' }}
+          </span>
+        </template>
+      </ElTableColumn>
+
+      <ElTableColumn :label="$t('sort')" width="80" show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ row.sort }}
+        </template>
+      </ElTableColumn>
+
+      <ElTableColumn :label="$t('action_enable')" width="80">
+        <template #default="{ row }">
+          <ElSwitch v-model="row.enable" @change="onAgentStatusChange({ data: row })" />
+        </template>
+      </ElTableColumn>
+
+      <ElTableColumn :label="$t('operation')" width="120" align="right" fixed="right">
+        <template #default="{ row }">
+          <ElButton type="primary" link @click="onAgentCreate({ data: row })">
+            {{ $t('action_edit') }}
+          </ElButton>
+          <ElButton type="primary" link @click="onAgentDelete({ data: row })">
+            {{ $t('action_delete') }}
+          </ElButton>
+        </template>
+      </ElTableColumn>
+    </TablePlus>
+  </ElDrawer>
+
+  <AgentCreateDrawer ref="agentCreateRef" @success="onAgentCreateSuccess" />
+</template>
+
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -38,7 +130,7 @@ const filterForm = reactive({
   channel_types: PROVIDER_VALUE.DIFY as string,
   keyword: '',
   offset: 0,
-  limit: 10
+  limit: 10,
 })
 const drawerTitle = computed(() => {
   const agent = getAgentByChannelType(filterForm.channel_types)
@@ -64,8 +156,8 @@ const loadAllTotal = async () => {
       group_id: '-1',
       keyword: '',
       offset: 0,
-      limit: 1
-    }
+      limit: 1,
+    },
   })
   all_total.value = count
 }
@@ -81,8 +173,8 @@ const loadListData = async ({ channel_types = filterForm.channel_types } = {}) =
       ...item,
       user_group_ids: item.user_group_ids || [],
       user_group_names: (item.user_group_ids || [])
-        .map((value) => (subscriptionList.value.find((row) => row.group_id === value) || {}).group_name)
-        .filter(Boolean)
+        .map(value => (subscriptionList.value.find(row => row.group_id === value) || {}).group_name)
+        .filter(Boolean),
     }))
 
     tableTotal.value = count
@@ -152,85 +244,8 @@ defineExpose({
     filterForm.channel_types = type
     originData.value = data
     onAgentCreate()
-  }
+  },
 })
 </script>
-
-<template>
-  <ElDrawer v-model="visible" :title="drawerTitle" size="70%" destroy-on-close append-to-body :close-on-click-modal="false">
-    <div class="flex items-center justify-between gap-4 mb-4">
-      <ElInput v-model="filterForm.keyword" :prefix-icon="Search" :placeholder="$t('action_search')" size="large" @change="refresh" />
-      <ElButton
-        type="primary"
-        size="large"
-        v-version="{ module: VERSION_MODULE.AGENT, count: all_total, content: $t('version.agent_limit') }"
-        @click="onAgentCreate"
-      >
-        {{ $t('action_add') }}
-      </ElButton>
-    </div>
-
-    <TablePlus
-      header-row-class-name="rounded overflow-hidden"
-      header-cell-class-name="!bg-[#F6F7F8] !h-[60px] !border-none"
-      :data="tableData"
-      :total="tableTotal"
-      :loading="tableLoading"
-      :page="filterForm.offset + 1"
-      :limit="filterForm.limit"
-      @page-size-change="onTableSizeChange"
-      @page-current-change="onTableCurrentChange"
-    >
-      <ElTableColumn prop="date" :label="$t('module.agent')" min-width="180" show-overflow-tooltip>
-        <template #default="{ row }">
-          <div class="flex items-center gap-2 w-full">
-            <img class="flex-none w-8 h-8 rounded-full overflow-hidden" :src="row.logo" alt="" />
-            <div class="flex-1 w-0 text-sm flex flex-col">
-              <div class="text-[#2563EB] truncate">
-                {{ row.name || '--' }}
-              </div>
-              <div v-show="row.description" class="text-xs text-[#808080] truncate">
-                {{ row.description }}
-              </div>
-            </div>
-          </div>
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn :label="$t('usage_range')" min-width="140" show-overflow-tooltip>
-        <template #default="{ row }">
-          <span :class="{ 'text-[#999]': !row.user_group_names.length }">
-            {{ row.user_group_names.join('、') || '--' }}
-          </span>
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn :label="$t('sort')" width="80" show-overflow-tooltip>
-        <template #default="{ row }">
-          {{ row.sort }}
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn :label="$t('action_enable')" width="80">
-        <template #default="{ row }">
-          <ElSwitch v-model="row.enable" @change="onAgentStatusChange({ data: row })" />
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn :label="$t('operation')" width="120" align="right" fixed="right">
-        <template #default="{ row }">
-          <ElButton type="primary" link @click="onAgentCreate({ data: row })">
-            {{ $t('action_edit') }}
-          </ElButton>
-          <ElButton type="primary" link @click="onAgentDelete({ data: row })">
-            {{ $t('action_delete') }}
-          </ElButton>
-        </template>
-      </ElTableColumn>
-    </TablePlus>
-  </ElDrawer>
-
-  <AgentCreateDrawer ref="agentCreateRef" @success="onAgentCreateSuccess" />
-</template>
 
 <style scoped></style>
