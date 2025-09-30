@@ -1,6 +1,10 @@
 package model
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+	"strconv"
+)
 
 type Agent struct {
 	AgentID           int64   `json:"agent_id" gorm:"primaryKey;autoIncrement"`
@@ -166,4 +170,33 @@ func GetAgentCountByEID(eid int64) (int64, error) {
 	var count int64
 	err := DB.Model(&Agent{}).Where("eid =?", eid).Count(&count).Error
 	return count, err
+}
+
+func (a *Agent) GetProviderID() int64 {
+	if a.CustomConfig == "" {
+		return 0
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal([]byte(a.CustomConfig), &config); err != nil {
+		return 0
+	}
+
+	if providerID, exists := config["provider_id"]; exists {
+		switch v := providerID.(type) {
+		case float64:
+			return int64(v)
+		case int:
+			return int64(v)
+		case int64:
+			return v
+		case string:
+			// Try to parse string as number
+			if num, err := strconv.ParseInt(v, 10, 64); err == nil {
+				return num
+			}
+		}
+	}
+
+	return 0
 }

@@ -655,6 +655,7 @@
     "auth_completed_tip": "Confirm you have completed the application binding, confirm to refresh the page"
   },
   "action_visit": "Visit",
+  "action_test": "Test",
   "action_add": "Add",
   "action_add_success": "Added",
   "action_create": "Create",
@@ -662,6 +663,8 @@
   "action_save": "Save",
   "action_save_success": "Saved",
   "action_save_failed": "Save Failed",
+  "action_test_success": "Available",
+  "action_test_failed": "Unavailable",
   "action_delete": "Delete",
   "action_delete_tip": "Delete Prompt",
   "action_delete_confirm": "Are you sure you want to delete this data?",
@@ -1146,5 +1149,10 @@
     "array_image": "Array Image",
     "array_audio": "Array Audio",
     "array_video": "Array Video"
+  },
+  "platform": {
+    "model_tip": "{total} { type } models",
+    "model_test_success": "Test successful, \"{platform}\" is currently available",
+    "model_test_failed": "Test failed, \"{platform}\" is currently unavailable"
   }
 }

@@ -9,56 +9,20 @@
 
   <el-form ref="formRef" label-position="top" :model="form" :rules="[]" @keyup.enter="handleSubmit">
     <el-form-item
-      :label="verify_way === 'email_verify' ? $t('form.email') : $t('form.mobile')"
+      :label="$t(`form.${verify_way === 'email_verify' ? 'email' : 'mobile'}`)"
       prop="username"
-      :rules="[
-        verify_way === 'email_verify' ? getEmailRules() : getMobileRules(),
-        {
-          validator: async (rule, value, callback) => {
-            try {
-              // 跳过空值触发和格式不符合触发
-              if (form.username.trim() === '' || !isFormatCorrect) {
-                return callback()
-              }
-              // 等待验证完成
-              await onUsernameBlur()
-
-              // 检查完成后，根据isRegister的值进行验证
-              if (verify_way === 'mobile_verify' && isRegister) {
-                existing_mobile = false
-                callback(new Error($t('form.mobile') + $t('register.unregistered')))
-              } else if (verify_way === 'email_verify' && isRegister) {
-                existing_email = false
-                callback(new Error($t('form.email') + $t('register.unregistered')))
-              }
-            } catch (error) {}
-          },
-          trigger: 'blur'
-        }
-      ]"
+      :rules="[getUsernameRules(), usernameCheck]"
     >
       <el-input
-        v-if="verify_way === 'email_verify'"
         v-model="form.username"
         v-trim
         size="large"
-        class="input_style"
-        :placeholder="$t('form.input_placeholder') + $t('form.email')"
+        :placeholder="$t('form.input_placeholder') + $t(`form.${verify_way === 'email_verify' ? 'email' : 'mobile'}`)"
         clearable
-        onblur="onUsernameBlur"
-      />
-      <el-input
-        v-else
-        v-model="form.username"
-        v-trim
-        size="large"
-        class="input_style"
-        :placeholder="$t('form.input_placeholder') + $t('form.mobile')"
-        clearable
-        onblur="onUsernameBlur"
+        @blur="onUsernameBlur"
       />
       <template #error>
-        <div v-if="!existing_mobile || !existing_email" class="text-xs text-[#f56c6c] absolute" style="top: 100%; left: 0">
+        <div v-if="!existingAccount" class="text-xs text-[#f56c6c] absolute" style="top: 100%; left: 0">
           {{ $t('status.not_found_account') }}
           <button type="button" class="text-xs text-[#2563EB] underline" @click="handleClose">
             {{ $t('action.register') }}
@@ -67,49 +31,28 @@
       </template>
     </el-form-item>
 
-    <el-form-item :label="$t('form.verify_code')" prop="verify_code" :rules="[verify_way === 'email_verify' ? emailCodeRule : codeRule]">
+    <el-form-item :label="$t('form.verify_code')" prop="verify_code" :rules="[getCodeRules()]">
       <div class="flex items-center" style="width: 100%">
         <el-input
           v-model="form.verify_code"
           v-trim
           size="large"
-          class="input_style no-right-radius flex-1"
+          class="no-right-radius flex-1"
           :placeholder="$t('form.input_placeholder') + $t('form.verify_code')"
-        ></el-input>
-        <el-button
-          v-if="verify_way === 'email_verify'"
-          v-debounce
-          :disabled="isRegister || isSending"
-          class="!bg-[#f5f5f5] border-0 h-[44px] no-left-radius"
-          @click.stop="handleGetCode"
         >
-          <div :class="['text-sm', 'pl-5', 'border-l', 'pr-1', 'text-[#2563EB]', { 'text-[#9A9A9A]': isRegister || isSending }]">
-            {{ emailCodeCount ? `${emailCodeCount}s` : $t('form.get_verify_code') }}
-          </div>
-        </el-button>
-        <el-button
-          v-else
-          v-debounce
-          :disabled="isRegister || isSending"
-          class="!bg-[#f5f5f5] border-0 h-[44px] w-29 no-left-radius"
-          @click.stop="handleGetCode"
-        >
-          <div :class="['text-sm', 'pl-5', 'border-l', 'pr-1', 'text-[#2563EB]', { 'text-[#9A9A9A]': isRegister || isSending }]">
-            {{ codeCount ? `${codeCount}s` : $t('form.get_verify_code') }}
-          </div>
-        </el-button>
+          <template #append>
+            <el-button v-debounce :disabled="isRegister || isSending" class="!bg-[#f5f5f5] border-0 w-29 no-left-radius" @click.stop="handleGetCode">
+              <div :class="['text-[#2563EB]', { 'text-[#9A9A9A]': isRegister || isSending }]">
+                {{ getCodeCount() ? `${getCodeCount()}s` : $t('form.get_verify_code') }}
+              </div>
+            </el-button>
+          </template>
+        </el-input>
       </div>
     </el-form-item>
 
     <el-form-item :label="$t('form.new_password')" prop="new_password" :rules="[getPasswordRules()]">
-      <el-input
-        v-model="form.new_password"
-        v-trim
-        show-password
-        size="large"
-        class="input_style"
-        :placeholder="$t('form.new_password_placeholder')"
-      ></el-input>
+      <el-input v-model="form.new_password" v-trim show-password size="large" :placeholder="$t('form.new_password_placeholder')"></el-input>
     </el-form-item>
 
     <el-form-item
@@ -122,7 +65,6 @@
         v-trim
         show-password
         size="large"
-        class="input_style"
         :placeholder="$t('form.new_password_confirm_placeholder')"
       ></el-input>
     </el-form-item>
@@ -152,6 +94,7 @@ const emits = defineEmits(['success', 'close'])
 const userStore = useUserStore()
 const { emailCodeRule, sendEmailCode, emailCodeCount } = useEmail()
 const { sendcode, codeRule, codeCount } = useMobile()
+const { isOpLocalEnv } = useEnv()
 
 const formRef = ref<FormInstance>()
 
@@ -163,29 +106,46 @@ const form = reactive({
 })
 
 const verify_way = ref('email_verify')
-
-const { isOpLocalEnv } = useEnv()
-
 const isSending = ref(true)
+const existingAccount = ref(true)
+const usernameCache = reactive(new Map())
+const isRegister = ref(true)
 
-// 添加清除表单验证的方法
-const clearFormValidation = () => {
-  if (formRef.value) {
-    formRef.value.clearValidate()
-  }
+// 获取用户名验证规则
+const getUsernameRules = () => {
+  return verify_way.value === 'email_verify' ? getEmailRules() : getMobileRules()
 }
 
-// 添加重置函数
+// 获取验证码规则
+const getCodeRules = () => {
+  return verify_way.value === 'email_verify' ? emailCodeRule : codeRule
+}
+
+// 获取验证码倒计时
+const getCodeCount = () => {
+  return verify_way.value === 'email_verify' ? emailCodeCount.value : codeCount.value
+}
+
+const isFormatCorrect = computed(() => {
+  const patterns = {
+    mobile_verify: /^1[3-9]\d{9}$/,
+    email_verify: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  }
+  return patterns[verify_way.value].test(form.username)
+})
+
+// 重置表单
 const resetForm = () => {
-  form.username = ''
-  form.verify_code = ''
-  form.new_password = ''
-  form.confirm_password = ''
-  existing_mobile.value = true
-  existing_email.value = true
+  Object.assign(form, {
+    username: '',
+    verify_code: '',
+    new_password: '',
+    confirm_password: ''
+  })
+  existingAccount.value = true
   isRegister.value = true
   nextTick(() => {
-    clearFormValidation()
+    formRef.value?.clearValidate()
   })
 }
 
@@ -193,59 +153,32 @@ const handleVerifyWayChange = () => {
   resetForm()
 }
 
-const isFormatCorrect = computed(() => {
-  if (verify_way.value === 'mobile_verify') {
-    return /^1[3-9]\d{9}$/.test(form.username)
-  }
-  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.username)
-})
+// 用户名验证规则
+const usernameCheck = {
+  validator: async (_rule, _value, callback) => {
+    try {
+      if (form.username.trim() === '' || !isFormatCorrect.value) {
+        return callback()
+      }
 
-const existing_mobile = ref(true)
-const existing_email = ref(true)
-// const rules = computed(() => {
-//   return {
-//     username: [
-//       verify_way.value === 'email_verify' ? getEmailRules() : getMobileRules(),
-//       {
-//         validator: async (rule, value, callback) => {
-//           try {
-//             // 跳过空值触发和格式不符合触发
-//             if (form.username.trim() === '' || !isFormatCorrect.value) {
-//               return callback()
-//             }
-//             // 等待验证完成
-//             await onUsernameBlur()
+      await onUsernameBlur()
 
-//             // 检查完成后，根据isRegister的值进行验证
-//             if (verify_way.value === 'mobile_verify' && isRegister.value) {
-//               existing_mobile.value = false
-//               callback(new Error(window.$t('form.mobile') + window.$t('register.unregistered')))
-//             } else if (verify_way.value === 'email_verify' && isRegister.value) {
-//               existing_email.value = false
-//               callback(new Error(window.$t('form.email') + window.$t('register.unregistered')))
-//             }
-//           } catch (error) {}
-//         },
-//         trigger: 'blur'
-//       }
-//     ],
-//     new_password: [getPasswordRules()],
-//     confirm_password: [getPasswordRules(), getConfirmPasswordRules(form, 'new_password')],
-//     verify_code: [verify_way.value === 'email_verify' ? emailCodeRule : codeRule]
-//   }
-// })
-
-const handleGetCode = () => {
-  if (verify_way.value === 'email_verify') {
-    sendEmailCode(form.username)
-  } else {
-    sendcode(form.username)
-  }
+      if (isRegister.value) {
+        existingAccount.value = false
+        return callback(new Error(window.$t(`form.${verify_way.value === 'email_verify' ? 'email' : 'mobile'}`) + window.$t('register.unregistered')))
+      }
+      return callback()
+    } catch (error) {
+      return callback()
+    }
+  },
+  trigger: 'blur'
 }
 
-// 添加用户名验证缓存
-const usernameCache = reactive(new Map())
-const isRegister = ref(true)
+const handleGetCode = () => {
+  const sendCodeFn = verify_way.value === 'email_verify' ? sendEmailCode : sendcode
+  sendCodeFn(form.username)
+}
 
 const onUsernameBlur = async () => {
   if (!isFormatCorrect.value) return Promise.resolve()
@@ -269,7 +202,6 @@ const onUsernameBlur = async () => {
 }
 
 const handleClose = () => {
-  // 重置表单
   resetForm()
   emits('close')
 }
@@ -277,14 +209,18 @@ const handleClose = () => {
 const handleSubmit = () => {
   return formRef.value?.validate().then(async (valid) => {
     if (!valid) return
-    console.log('valid')
+
     try {
+      const resetData = {
+        verify_code: form.verify_code,
+        new_password: form.new_password,
+        confirm_password: form.confirm_password
+      }
+
       if (verify_way.value === 'email_verify') {
         await userStore.reset_password({
           email: form.username,
-          verify_code: form.verify_code,
-          new_password: form.new_password,
-          confirm_password: form.confirm_password
+          ...resetData
         })
       } else {
         await commonApi.verifycode({
@@ -294,33 +230,23 @@ const handleSubmit = () => {
         })
         await userStore.reset_password({
           mobile: form.username,
-          verify_code: form.verify_code,
-          new_password: form.new_password,
-          confirm_password: form.confirm_password
+          ...resetData
         })
       }
+
       ElMessage.success(window.$t('status.update_success'))
       emits('success')
-      // 重置表单内容
       resetForm()
     } catch (error) {
       ElMessage.error()
     }
   })
 }
+// 监听验证码倒计时状态
 watch(
-  () => codeCount.value,
-  (newVal) => {
-    isSending.value = newVal > 0
-  },
-  {
-    immediate: true
-  }
-)
-watch(
-  () => emailCodeCount.value,
-  (newVal) => {
-    isSending.value = newVal > 0
+  [() => codeCount.value, () => emailCodeCount.value],
+  ([mobileCount, emailCount]) => {
+    isSending.value = mobileCount > 0 || emailCount > 0
   },
   {
     immediate: true

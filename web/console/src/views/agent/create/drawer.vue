@@ -53,22 +53,6 @@ const channelConfig = ref({})
 
 provide('channelConfig', channelConfig)
 
-// 加载渠道列表
-const loadBotsList = () => {
-  switch (agentType.value) {
-    case AGENT_TYPES.COZE_AGENT_CN:
-      agentFormStore.loadCozeWorkspaceOptions()
-      break
-    case AGENT_TYPES.APP_BUILDER:
-      agentFormStore.loadAppBuilderBotOptions()
-      break
-    case AGENT_TYPES['53AI_AGENT']:
-    case AGENT_TYPES['53AI_WORKFLOW']:
-      agentFormStore.load53aiAppOptions()
-      break
-  }
-}
-
 // 编辑页过来时，不重置状态，直接打开
 async function open({ agent_type, data = {}, agent_id, group_id = 0, cache = false }: OpenParams = {}) {
   // Update form state
@@ -81,7 +65,6 @@ async function open({ agent_type, data = {}, agent_id, group_id = 0, cache = fal
   if (!channelConfig.value.channel_type && data.value) channelConfig.value.channel_type = data.value
 
   if (cache) {
-    loadBotsList()
   } else {
     agentFormStore.resetState()
     await nextTick()
@@ -89,7 +72,6 @@ async function open({ agent_type, data = {}, agent_id, group_id = 0, cache = fal
     agentFormStore.agent_type = agentFormStore.form_data.custom_config.agent_type = agentType.value
     agentFormStore.form_data.logo = getAgentByAgentType(agentType.value).icon
     agentFormStore.form_data.group_id = group_id || 0
-    loadBotsList()
     await agentFormStore.loadDetailData()
   }
   // Load necessary data

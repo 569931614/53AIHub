@@ -95,6 +95,12 @@ export interface ChannelItem extends RawChannelItem {
   }>
 }
 
+export interface ChannelTestResponse {
+  success: boolean
+  message: string
+  time: number
+}
+
 export const getModelIcon = (value: string) => {
   let icon = ''
   if (/deepseek/i.test(value)) icon = 'deepseek'
@@ -229,6 +235,12 @@ export const channelApi = {
 
   delete(channel_id: number) {
     return service.delete(`/api/channels/${channel_id}`).catch(handleError)
+  },
+  test(channel_id: number, params?: { model?: string }): Promise<ChannelTestResponse> {
+    return service
+      .get(`/api/channels/test/${channel_id}`, { params })
+      .then(res => res.data)
+      .catch(handleError)
   },
 }
 

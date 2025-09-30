@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/53AI/53AIHub/common/logger"
 	"github.com/53AI/53AIHub/config"
@@ -17,11 +18,13 @@ import (
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param provider_id query int false "Provider ID (optional, for backward compatibility)"
 // @Success 200 {object} model.CommonResponse{data=[]coze.Workspace}
 // @Router /api/coze/workspaces [get]
 func GetCozeAllWorkspaces(c *gin.Context) {
 	eid := config.GetEID(c)
-	provider, err := model.GetFirstProviderByEidAndProviderType(eid, int64(model.ProviderTypeCozeCn))
+	providerID, _ := strconv.ParseInt(c.DefaultQuery("provider_id", "0"), 10, 64)
+	provider, err := model.GetProviderByEidAndProviderTypeWithOptionalID(eid, int64(model.ProviderTypeCozeCn), providerID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return
@@ -45,6 +48,7 @@ func GetCozeAllWorkspaces(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param workspace_id path string true "Workspace ID"
+// @Param provider_id query int false "Provider ID (optional, for backward compatibility)"
 // @Success 200 {object} model.CommonResponse{data=[]coze.Bot}
 // @Router /api/coze/workspaces/{workspace_id}/bots [get]
 func GetCozeAllBots(c *gin.Context) {
@@ -55,7 +59,8 @@ func GetCozeAllBots(c *gin.Context) {
 	}
 
 	eid := config.GetEID(c)
-	provider, err := model.GetFirstProviderByEidAndProviderType(eid, int64(model.ProviderTypeCozeCn))
+	providerID, _ := strconv.ParseInt(c.DefaultQuery("provider_id", "0"), 10, 64)
+	provider, err := model.GetProviderByEidAndProviderTypeWithOptionalID(eid, int64(model.ProviderTypeCozeCn), providerID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.ProviderNoFoundError.ToResponse(err))
 		return
@@ -88,6 +93,14 @@ func GetCozeAllBots(c *gin.Context) {
 			bots[i].IconURL = cachedIconURL
 		}
 	}
+	//重新合并请求
+
+	var botIds []string
+	for _, bot := range bots {
+		botIds = append(botIds, bot.BotID)
+	}
+
+	ser.UpdateCozeChannel(botIds, &provider)
 
 	c.JSON(http.StatusOK, model.Success.ToResponse(bots))
 }

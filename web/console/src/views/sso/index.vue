@@ -1,9 +1,72 @@
+<template>
+  <Layout class="px-[60px] py-8">
+    <Header :title="$t(route.meta.title)" />
+    <div class="bg-white rounded-md overflow-hidden py-8 px-10 mt-5 box-border space-y-10 flex-1 overflow-y-auto">
+      <div v-for="item in ssoList" :key="item.type">
+        <h1 class="text-lg text-[#1D1E1F] flex items-center gap-2">
+          <img :src="$getRealPath({ url: `/images/sso/${item.type}.png` })" class="size-6 object-cover" />
+          {{ $t(`sso.${item.type}.title`) }}
+        </h1>
+        <div class="mt-4 flex flex-wrap items-center gap-4">
+          <div class="flex-none w-[300px] min-h-[176px] rounded overflow-hidden border p-5 box-border">
+            <h2 class="font-semibold text-[#1D1E1F] h-[26px]">
+              {{ $t(`sso.${item.type}.access_title`) }}
+              <ElTag v-if="installedMap[item.type]" class="ml-2 -mt-1" type="success">
+                {{ $t('connected') }}
+              </ElTag>
+            </h2>
+            <p class="text-xs text-[#939499] mt-3">
+              {{
+                installedMap[item.type]
+                  ? `${$t('sso.authorized_enterprise')}： ${enterpriseStore.info.wecom_info.corp_name}`
+                  : $t(`sso.${item.type}.access_desc`)
+              }}
+            </p>
+            <div class="mt-12">
+              <ElButton v-if="installedMap[item.type]" @click="handleUnauthorized({ type: item.type })">
+                {{ $t('sso.unauthorized') }}
+              </ElButton>
+              <template v-else>
+                <ElButton
+                  type="primary"
+                  :disabled="['dingtalk', 'ad_ldap', 'feishu'].includes(item.type)"
+                  @click="handleAuthorized({ type: item.type })"
+                >
+                  {{ $t('sso.auth_access') }}
+                </ElButton>
+              </template>
+            </div>
+          </div>
+          <div
+            v-if="item.type === 'wecom'"
+            class="relative flex-none w-[300px] min-h-[176px] rounded overflow-hidden border p-5 box-border"
+          >
+            <h2 class="font-semibold text-[#1D1E1F]">
+              {{ $t(`sso.organization_sync`) }}
+            </h2>
+            <p class="text-xs text-[#939499] mt-3">
+              {{ $t(`sso.${item.type}.sync_desc`) }}
+            </p>
+            <div v-if="installedMap[item.type]" class="absolute right-5 top-4">
+              <ElSwitch
+                v-debounce
+                :model-value="syncValue.value === item.sync_value"
+                @change="handleSyncToggle($event, item.sync_value)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <AccessDialog ref="accessRef" />
+  </Layout>
+</template>
+
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AccessDialog from './components/access-dialog.vue'
 
-import eventBus from '@/utils/event-bus'
 import { useEnterpriseStore } from '@/stores'
 
 import { useSso } from '@/hooks/useSso'
@@ -11,6 +74,8 @@ import { useSso } from '@/hooks/useSso'
 const route = useRoute()
 const enterpriseStore = useEnterpriseStore()
 const { syncValue, loadSyncSetting, saveSyncSetting } = useSso()
+
+const accessRef = ref<InstanceType<typeof AccessDialog>>()
 
 const ssoList = ref([
   {
@@ -50,12 +115,8 @@ const installedMap = computed(() => {
   }
 })
 
-const refresh = async () => {
-}
-
-const accessRef = ref<InstanceType<typeof AccessDialog>>()
 const handleAuthorized = ({ type }: { type: string }) => {
-  accessRef.value.open({ type })
+  accessRef.value?.open({ type })
 }
 
 const handleUnauthorized = ({ type }: { type: string }) => {
@@ -76,72 +137,8 @@ const handleSyncToggle = async (checked: boolean, value: string) => {
 
 onMounted(() => {
   loadSyncSetting()
-  eventBus.on('user-login-success', refresh)
 })
-onUnmounted(() => {
-  eventBus.off('user-login-success', refresh)
-})
+onUnmounted(() => {})
 </script>
 
-<template>
-  <Layout class="px-[60px] py-8">
-    <Header :title="$t(route.meta.title)" />
-    <div class="bg-white rounded-md overflow-hidden py-8 px-10 mt-5 box-border space-y-10 flex-1 overflow-y-auto">
-      <div v-for="item in ssoList" :key="item.type">
-        <h1 class="text-lg text-[#1D1E1F] flex items-center gap-2">
-          <img :src="$getRealPath({ url: `/images/sso/${item.type}.png` })" class="size-6 object-cover">
-          {{ $t(`sso.${item.type}.title`) }}
-        </h1>
-        <div class="mt-4 flex flex-wrap items-center gap-4">
-          <div class="flex-none w-[300px] min-h-[176px] rounded overflow-hidden border p-5 box-border">
-            <h2 class="font-semibold text-[#1D1E1F] h-[26px]">
-              {{ $t(`sso.${item.type}.access_title`) }}
-              <ElTag v-if="installedMap[item.type]" class="ml-2 -mt-1" type="success">
-                {{ $t('connected') }}
-              </ElTag>
-            </h2>
-            <p class="text-xs text-[#939499] mt-3">
-              {{ installedMap[item.type] ? `${$t('sso.authorized_enterprise')}： ${enterpriseStore.info.wecom_info.corp_name}`
-                : $t(`sso.${item.type}.access_desc`) }}
-            </p>
-            <div class="mt-12">
-              <ElButton
-                v-if="installedMap[item.type]"
-                @click="handleUnauthorized({ type: item.type })"
-              >
-                {{ $t('sso.unauthorized') }}
-              </ElButton>
-              <template v-else>
-                <ElButton
-                  type="primary" :disabled="['dingtalk', 'ad_ldap', 'feishu'].includes(item.type)"
-                  @click="handleAuthorized({ type: item.type })"
-                >
-                  {{ $t('sso.auth_access') }}
-                </ElButton>
-              </template>
-            </div>
-          </div>
-          <div
-            v-if="item.type === 'wecom'"
-            class="relative flex-none w-[300px] min-h-[176px] rounded overflow-hidden border p-5 box-border"
-          >
-            <h2 class="font-semibold text-[#1D1E1F]">
-              {{ $t(`sso.organization_sync`) }}
-            </h2>
-            <p class="text-xs text-[#939499] mt-3">
-              {{ $t(`sso.${item.type}.sync_desc`) }}
-            </p>
-            <div v-if="installedMap[item.type]" class="absolute right-5 top-4">
-              <ElSwitch v-debounce :model-value="syncValue.value === item.sync_value" @change="handleSyncToggle($event, item.sync_value)" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <AccessDialog ref="accessRef" />
-  </Layout>
-</template>
-
-<style scoped>
-
-</style>
+<style scoped></style>

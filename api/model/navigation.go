@@ -6,6 +6,7 @@ type Navigation struct {
 	NavigationID int64              `json:"navigation_id" gorm:"primaryKey;autoIncrement;comment:自增id"`
 	Eid          int64              `json:"eid" gorm:"not null;comment:企业ID"`
 	Name         string             `json:"name" gorm:"size:50;not null;comment:名称"`
+	Icon         string             `json:"icon" gorm:"size:255;comment:图标URL或标识"`
 	Type         int                `json:"type" gorm:"not null;comment:类型1系统内置,2外部链接,3自定义页"` // 类型(1=系统内置,2=外部链接,3=自定义页)
 	JumpPath     string             `json:"jump_path" gorm:"size:255;not null;comment:跳转路径"`
 	Sort         int                `json:"sort" gorm:"default:0;comment:排序"`

@@ -428,6 +428,78 @@ func setSystemPrompt(ctx context.Context, request *relay_model.GeneralOpenAIRequ
 	return true
 }
 
+// createInitialMessage 在请求发起前创建占位消息，返回 messageID
+func createInitialMessage(c *gin.Context, agent *model.Agent, user_id int64, conversationId int64, textRequest *relay_model.GeneralOpenAIRequest, meta *meta.Meta, requestId string) (int64, error) {
+	ctx := c.Request.Context()
+	messageJSON, err := json.Marshal(textRequest.Messages)
+	if err != nil {
+		logger.Errorf(ctx, "marshal messages failed: %s", err.Error())
+		messageJSON = []byte("[]")
+	}
+
+	msg := &model.Message{
+		Eid:              agent.Eid,
+		UserID:           user_id,
+		ConversationID:   conversationId,
+		AgentID:          agent.AgentID,
+		Message:          string(messageJSON),
+		Answer:           "",
+		ReasoningContent: "",
+		ModelName:        textRequest.Model,
+		Quota:            0,
+		PromptTokens:     0,
+		CompletionTokens: 0,
+		TotalTokens:      0,
+		ChannelId:        int(meta.ChannelId),
+		RequestId:        requestId,
+		ElapsedTime:      0,
+		IsStream:         meta.IsStream,
+		QuotaContent:     "",
+		AgentCustomConfig: func() string {
+			// 保存历史配置便于追溯
+			return agent.CustomConfig
+		}(),
+	}
+	if err := model.CreateMessage(msg); err != nil {
+		return 0, err
+	}
+	return msg.ID, nil
+}
+
+// sendSaveMessageEvent 按OpenAI兼容格式发送首帧，包含 save_message.id
+func sendSaveMessageEvent(c *gin.Context, requestId, modelName string, messageID int64) error {
+	// 设置必要头部（幂等）
+	h := c.Writer.Header()
+	h.Set("Content-Type", "text/event-stream; charset=utf-8")
+	h.Set("Cache-Control", "no-cache")
+	h.Set("Connection", "keep-alive")
+	h.Set("X-Accel-Buffering", "no")
+
+	payload := map[string]interface{}{
+		"id":         requestId,
+		"object":     "chat.completion.chunk",
+		"created":    time.Now().Unix(),
+		"model":      modelName,
+		"message_id": messageID,
+		"choices":    []interface{}{},
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	chunk := append([]byte("data: "), b...)
+	chunk = append(chunk, []byte("\n\n")...)
+
+	if _, err := c.Writer.Write(chunk); err != nil {
+		return err
+	}
+	if flusher, ok := c.Writer.(http.Flusher); ok {
+		flusher.Flush()
+	}
+	return nil
+}
+
 func getPromptTokens(textRequest *relay_model.GeneralOpenAIRequest, relayMode int) int {
 	switch relayMode {
 	case relaymode.ChatCompletions:
@@ -506,6 +578,11 @@ func RelayTextHelper(c *gin.Context) *relay_model.ErrorWithStatusCode {
 	if meta.IsStream {
 		SetupStreamInterceptor(c)
 	}
+	// 获取请求ID
+	requestId := helper.GetRequestID(ctx)
+	if requestId == "" {
+		requestId = fmt.Sprintf("req-%d", time.Now().UnixNano())
+	}
 
 	// map model name
 	meta.OriginModelName = textRequest.Model
@@ -562,6 +639,13 @@ func RelayTextHelper(c *gin.Context) *relay_model.ErrorWithStatusCode {
 		return openai.ErrorWrapper(err, "convert_request_failed", http.StatusInternalServerError)
 	}
 
+	// 1) 前置创建消息记录，获取 messageID
+	messageID, errCreate := createInitialMessage(c, agent, user_id, conversation.ConversationID, textRequest, meta, requestId)
+	if errCreate != nil {
+		logger.Errorf(ctx, "createInitialMessage failed: %s", errCreate.Error())
+		return openai.ErrorWrapper(errCreate, "create_message_failed", http.StatusInternalServerError)
+	}
+
 	// get request body
 	requestBody, err := getRequestBody(c, meta, textRequest, adaptor)
 	if err != nil {
@@ -574,11 +658,29 @@ func RelayTextHelper(c *gin.Context) *relay_model.ErrorWithStatusCode {
 		logger.Errorf(ctx, "DoRequest failed: %s", err.Error())
 		return openai.ErrorWrapper(err, "do_request_failed", http.StatusInternalServerError)
 	}
+
+	// 先判断是否错误，再决定是否发送首帧
 	if isErrorHappened(meta, resp) {
 		logger.SysErrorf("检测到错误响应 - StatusCode: %d, ContentType: %s, IsStream: %v, ChannelType: %d, ModelName: %s",
 			resp.StatusCode, resp.Header.Get("Content-Type"), meta.IsStream, meta.ChannelType, meta.ActualModelName)
-		//billing.ReturnPreConsumedQuota(ctx, preConsumedQuota, meta.TokenId)
+
+		// 读取错误正文以写入到消息中，然后复位 resp.Body 供后续错误处理
+		errBodyBytes, _ := io.ReadAll(resp.Body)
+		resp.Body = io.NopCloser(bytes.NewBuffer(errBodyBytes))
+
+		// 更新前置消息为失败记录
+		failUpdateMessage(c, agent, messageID, startTime, meta, textRequest.Model, requestId, string(errBodyBytes))
+
+		// 返回统一错误处理
 		return controller.RelayErrorHandler(resp)
+	}
+
+	// 非错误：此时再发送首帧 message_id
+	if meta.IsStream {
+		if err := sendSaveMessageEvent(c, requestId, textRequest.Model, messageID); err != nil {
+			logger.Warnf(ctx, "sendSaveMessageEvent failed: %s", err.Error())
+			// 不中断主流程
+		}
 	}
 
 	// do response
@@ -596,7 +698,7 @@ func RelayTextHelper(c *gin.Context) *relay_model.ErrorWithStatusCode {
 	// post-consume quota
 	go postConsumeQuota(c, agent, user_id, startTime, ctx, usage, meta,
 		textRequest, ratio, preConsumedQuota, modelRatio, groupRatio,
-		systemPromptReset, responseContent, reasoningContent, customConfig)
+		systemPromptReset, responseContent, reasoningContent, customConfig, messageID)
 	return nil
 }
 
@@ -662,7 +764,7 @@ func addAgentPrompt(ctx context.Context, textRequest *relay_model.GeneralOpenAIR
 func postConsumeQuota(c *gin.Context, agent *model.Agent, user_id int64, startTime time.Time,
 	ctx context.Context, usage *relay_model.Usage, meta *meta.Meta, textRequest *relay_model.GeneralOpenAIRequest,
 	ratio float64, preConsumedQuota int64, modelRatio float64,
-	groupRatio float64, systemPromptReset bool, responseContent string, reasoningContent string, customConfig *custom.CustomConfig) {
+	groupRatio float64, systemPromptReset bool, responseContent string, reasoningContent string, customConfig *custom.CustomConfig, messageID int64) {
 	if usage == nil {
 		logger.Error(ctx, "usage is nil, which is unexpected")
 		return
@@ -677,42 +779,50 @@ func postConsumeQuota(c *gin.Context, agent *model.Agent, user_id int64, startTi
 	}
 	totalTokens := promptTokens + completionTokens
 	if totalTokens == 0 {
-		// in this case, must be some error happened
-		// we cannot just return, because we may have to return the pre-consumed quota
 		quota = 0
 	}
 	quotaDelta := quota - preConsumedQuota
 
 	logContent := fmt.Sprintf("倍率：%.2f × %.2f × %.2f", modelRatio, groupRatio, completionRatio)
 
+	// 获取前置保存的消息并更新
+	message, err := model.GetMessageByID(agent.Eid, messageID)
+	if err != nil {
+		logger.Errorf(ctx, "GetMessageByID failed (eid=%d id=%d): %s", agent.Eid, messageID, err.Error())
+		return
+	}
+
+	// 重新序列化提问以保证 lastMessage 构造
 	messageJSON, err := json.Marshal(textRequest.Messages)
 	if err != nil {
 		logger.Errorf(ctx, "marshal messages failed: %s", err.Error())
 		messageJSON = []byte("[]")
 	}
-	requestId := helper.GetRequestID(ctx)
-	conversationId := c.GetInt64(session.SESSION_CONVERSATION_ID)
-	message := &model.Message{
-		Eid:              agent.Eid,
-		UserID:           user_id,
-		ConversationID:   conversationId,
-		AgentID:          agent.AgentID,
-		Message:          string(messageJSON),
-		Answer:           responseContent,
-		ReasoningContent: reasoningContent,
-		ModelName:        textRequest.Model,
-		Quota:            int(quotaDelta),
-		PromptTokens:     promptTokens,
-		CompletionTokens: completionTokens,
-		TotalTokens:      totalTokens,
-		ChannelId:        int(meta.ChannelId),
-		RequestId:        requestId,
-		ElapsedTime:      helper.CalcElapsedTime(startTime),
-		IsStream:         meta.IsStream,
-		QuotaContent:     logContent,
+
+	// 更新消息字段
+	message.Answer = responseContent
+	message.ReasoningContent = reasoningContent
+	message.ModelName = textRequest.Model
+	message.Quota = int(quotaDelta)
+	message.PromptTokens = promptTokens
+	message.CompletionTokens = completionTokens
+	message.TotalTokens = totalTokens
+	message.ChannelId = int(meta.ChannelId)
+	// 保持原始 RequestId，如为空则补齐
+	if message.RequestId == "" {
+		message.RequestId = helper.GetRequestID(ctx)
 	}
-	model.CreateMessage(message)
+	message.ElapsedTime = helper.CalcElapsedTime(startTime)
+	message.IsStream = meta.IsStream
+	message.QuotaContent = logContent
+
+	if err := model.UpdateMessage(message); err != nil {
+		logger.Errorf(ctx, "UpdateMessage failed: %s", err.Error())
+		return
+	}
+
 	// conversation update
+	conversationId := message.ConversationID
 	if conversationId != 0 {
 		conversation, err := model.GetConversationByIdAndUserId(agent.Eid, conversationId, user_id)
 		if err != nil {
@@ -735,7 +845,9 @@ func postConsumeQuota(c *gin.Context, agent *model.Agent, user_id int64, startTi
 				}
 			}
 
-			model.UpdateConversation(conversation)
+			if err := model.UpdateConversation(conversation); err != nil {
+				logger.Errorf(ctx, "UpdateConversation failed: %s", err.Error())
+			}
 		}
 	}
 }
@@ -751,6 +863,36 @@ func getPreConsumedQuota(textRequest *relay_model.GeneralOpenAIRequest, promptTo
 		preConsumedTokens += int64(textRequest.MaxTokens)
 	}
 	return int64(float64(preConsumedTokens) * ratio)
+}
+
+// failUpdateMessage: 在错误路径下更新前置创建的消息为失败记录
+func failUpdateMessage(c *gin.Context, agent *model.Agent, messageID int64, startTime time.Time, meta *meta.Meta, modelName, requestId, errText string) {
+	ctx := c.Request.Context()
+	msg, err := model.GetMessageByID(agent.Eid, messageID)
+	if err != nil {
+		logger.Errorf(ctx, "failUpdateMessage GetMessageByID failed (eid=%d id=%d): %s", agent.Eid, messageID, err.Error())
+		return
+	}
+	// 将错误文本写入 Answer，tokens/Quota 置零
+	msg.Answer = errText
+	msg.ReasoningContent = ""
+	msg.ModelName = modelName
+	msg.Quota = 0
+	msg.PromptTokens = 0
+	msg.CompletionTokens = 0
+	msg.TotalTokens = 0
+	msg.ChannelId = int(meta.ChannelId)
+	if msg.RequestId == "" {
+		msg.RequestId = requestId
+	}
+	msg.ElapsedTime = helper.CalcElapsedTime(startTime)
+	msg.IsStream = meta.IsStream
+	// 可选：标注倍率文本为空
+	msg.QuotaContent = ""
+
+	if err := model.UpdateMessage(msg); err != nil {
+		logger.Errorf(ctx, "failUpdateMessage UpdateMessage failed: %s", err.Error())
+	}
 }
 
 // executeWorkflow 执行工作流并返回标准响应数据
@@ -772,9 +914,16 @@ func executeWorkflow(c *gin.Context, workflowRequest *WorkflowRunRequest, agent 
 	ctx := c.Request.Context()
 	channel, err := service.GetChannelWithTokenRefresh(ctx, agent.Eid, agent.ChannelType, modelName, 0)
 	if err != nil {
-		// 如果是Coze渠道，尝试使用备用方法获取渠道
+		providerID := agent.GetProviderID()
+		logger.SysLogf("尝试获取平台 ID %d", providerID)
+		// 如果是Coze渠道，尝试使用备用方法获取渠道（优先选择有Provider的Channel）
 		if agent.ChannelType == channeltype.Coze {
-			channel, err = model.GetFirstChannelByEidAndProviderType(agent.Eid, channeltype.Coze)
+			if providerID == 0 {
+				channel, err = model.GetFirstAvailableChannelByEidAndProviderType(agent.Eid, channeltype.Coze)
+			} else {
+				channel, err = model.GetFirstChannelByEidAndProviderType(agent.Eid, channeltype.Coze, providerID)
+			}
+
 			if err != nil || channel == nil {
 				return nil, fmt.Errorf("provider channel error")
 			}

@@ -1,7 +1,7 @@
 import service from '@/api/config'
 import { handleError } from '@/api/errorHandler'
 
-import type { Banner, RawBanner } from './banner.d'
+import type { Banner, RawBanner } from './types'
 
 export const bannerApi = {
   get(): Promise<RawBanner> {

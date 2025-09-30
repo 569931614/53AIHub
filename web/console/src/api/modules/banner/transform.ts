@@ -1,5 +1,5 @@
 import { BANNER_CONFIG } from '@/constants/banner'
-import type { Banner, RawBanner } from './banner.d'
+import type { Banner, RawBanner } from './types'
 
 export const getDefaultBanner = (): Banner => ({
   url_list: [],

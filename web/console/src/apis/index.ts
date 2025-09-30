@@ -6,7 +6,6 @@ import conversation from './modules/conversation'
 import enterprise from './modules/enterprise'
 import setting from './modules/setting'
 import qyy from './modules/qyy'
-import domain from './modules/domain'
 import { isObject } from '@/utils'
 import { del, get, patch, post, put } from '@/utils/request'
 
@@ -17,7 +16,6 @@ const api_config = {
   enterprise,
   setting,
   qyy,
-  domain
 }
 
 const REQUEST_MAP = new Map([
@@ -25,7 +23,7 @@ const REQUEST_MAP = new Map([
   ['POST', post],
   ['PATCH', patch],
   ['PUT', put],
-  ['DELETE', del]
+  ['DELETE', del],
 ])
 
 // export function fetchChatAPIProcess<T = any>(
@@ -89,11 +87,11 @@ const REQUEST_MAP = new Map([
 // }
 
 const findEach = (source: any = {}, url = '') => {
-  Object.keys(source).forEach((key) => {
+  Object.keys(source).forEach(key => {
     const data = source[key]
     if (data.method && !isObject(data.method)) {
       let method = data.method || ''
-      Object.keys(data).forEach((data_key) => {
+      Object.keys(data).forEach(data_key => {
         if (!Object.keys(data).includes('method'))
           findEach(data[data_key], `${url}/${key}/${data_key}`)
       })
@@ -105,7 +103,7 @@ const findEach = (source: any = {}, url = '') => {
           ...data,
           method,
           url: data.url || `${url}/${key}`,
-          ...config
+          ...config,
         })
       }
     } else {
@@ -116,5 +114,5 @@ const findEach = (source: any = {}, url = '') => {
 findEach(api_config)
 
 export default {
-  ...api_config
+  ...api_config,
 }

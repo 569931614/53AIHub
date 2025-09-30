@@ -187,6 +187,12 @@ func (user *User) RefreshAccessToken() error {
 	if err != nil {
 		return err
 	}
+
+	// 内部成员登录默认改为加入
+	if user.Type == UserTypeInternal && user.Status == UserStatusNotJoined {
+		user.Status = UserStatusJoined
+	}
+
 	user.LastLoginTime = time.Now().UTC().UnixMilli()
 	err = DB.Model(user).Updates(user).Error
 	return err

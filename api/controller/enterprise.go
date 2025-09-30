@@ -311,7 +311,6 @@ type HomePageResponse struct {
 	AILinkCount int64 `json:"ai_link_count"`
 }
 
-// GetHomePage retrieves homepage information
 // @Summary Get homepage information
 // @Description Get site application info, enterprise info, agent count and user count
 // @Tags Enterprise

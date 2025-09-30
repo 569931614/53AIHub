@@ -674,6 +674,7 @@
     "auth_completed_tip": "请确认您已完成应用绑定，确认后将刷新页面"
   },
   "action_visit": "访问",
+  "action_test": "测试",
   "action_add": "添加",
   "action_add_success": "已添加",
   "action_create": "创建",
@@ -681,6 +682,8 @@
   "action_save": "保存",
   "action_save_success": "已保存",
   "action_save_failed": "保存失败",
+  "action_test_success": "可用",
+  "action_test_failed": "不可用",
   "action_delete": "删除",
   "action_delete_tip": "删除提示",
   "action_delete_confirm": "确定删除该数据吗？",
@@ -1174,6 +1177,8 @@
     "rerank": "rerank模型"
   },
   "platform": {
-    "model_tip": "{total}个{ type }模型"
+    "model_tip": "{total}个{ type }模型",
+    "model_test_success": "测试成功，「{platform}」当前可正常使用",
+    "model_test_failed": "测试失败：您已超出当前配额，请检查您的账单详情"
   }
 }

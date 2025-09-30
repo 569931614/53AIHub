@@ -192,7 +192,8 @@
               :class="[route.path === item.jump_path ? 'bg-[#ECEDEE]' : '']"
             >
               <div class="size-7 flex-center">
-                <svg-icon size="18" :name="item.icon || 'app'" stroke></svg-icon>
+                <!-- <svg-icon size="18" :name="item.icon || 'app'" stroke></svg-icon> -->
+                <img class="icon-img" :src="item.icon" />
               </div>
               <p class="flex-1 text-base text-[#000000] truncate">
                 {{ item.name }}
@@ -207,7 +208,8 @@
               class="h-9 px-2 rounded-md flex items-center gap-0.5 mt-1.5 cursor-pointer text-[#4F5052] hover:bg-[#ECEDEE]"
             >
               <div class="size-7 flex-center">
-                <svg-icon size="18" :name="item.icon || 'app'" stroke></svg-icon>
+                <!-- <svg-icon size="18" :name="item.icon || 'app'" stroke></svg-icon> -->
+                <img class="icon-img" :src="item.icon" />
               </div>
               <p class="flex-1 text-base text-[#000000] truncate">
                 {{ item.name }}
@@ -608,5 +610,13 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.icon-img {
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  transform: translateX(-60px);
+  filter: drop-shadow(#333333 60px 0);
 }
 </style>

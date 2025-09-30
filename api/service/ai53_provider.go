@@ -42,7 +42,7 @@ func (a *AI53Service) GetAllBots() ([]ai53.AppResponse, error) {
 
 func (a *AI53Service) GetAllWorkflows() ([]ai53.AppResponse, error) {
 	api := a.GetApiSdk()
-	var allWorkflows []ai53.AppResponse
+	allWorkflows := make([]ai53.AppResponse, 0)
 	offset := 0
 	limit := 100
 

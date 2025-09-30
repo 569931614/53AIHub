@@ -1644,11 +1644,11 @@ func ResetPassword(c *gin.Context) {
 		}
 	}
 
-	// 加密新密码
+	// 加密新密码，并更新用户
 	salt := helper.RandomString(6)
 	hashedPassword, err := helper.PasswordHash(req.NewPassword, salt)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, model.SystemError.ToResponse(err))
+		c.JSON(http.StatusInternalServerError, model.InvalidVerificationCodeError.ToResponse(err))
 		return
 	}
 

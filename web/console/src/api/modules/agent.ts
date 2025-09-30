@@ -1,4 +1,4 @@
-import { BACKEND_AGENT_TYPE } from '@/constants/platform/config'
+import { BACKEND_AGENT_TYPE, getAgentByAgentType, AGENT_TYPES } from '@/constants/platform/config'
 import service from '../config'
 import { handleError } from '../errorHandler'
 import { AGENT_TYPE, type AgentType } from '@/constants/platform'
@@ -63,6 +63,99 @@ interface SaveRequestData
   use_cases: string
   custom_config: string
   settings: string
+}
+
+export interface RawCozeWorkspaceItem {
+  id: string
+  name: string
+  icon_url: string
+  role_type: string
+  workspace_type: string
+}
+
+export interface CozeWorkspaceItem extends RawCozeWorkspaceItem {
+  value: string
+  label: string
+  icon: string
+}
+
+export interface Raw53aiBotItem {
+  bot_id: string
+  name: string
+  logo: string
+  description: string
+  opening_statement: string
+  suggested_questions: string[]
+}
+
+export interface RawCozeBotItem {
+  bot_id: string
+  bot_name: string
+  description: string
+  icon_url: string
+}
+
+export interface CozeBotItem extends RawCozeBotItem {
+  value: string
+  label: string
+  icon: string
+}
+
+export interface RawAppBuilderBotItem {
+  id: string
+  name: string
+  description: string
+  appType: string
+  isPublished: boolean
+  updateTime: number
+}
+
+export interface AppBuilderBotItem extends RawAppBuilderBotItem {
+  value: string
+  label: string
+  icon: string
+}
+
+export interface BotItem53aiItem extends Raw53aiBotItem {
+  value: string
+  label: string
+  icon: string
+}
+
+export const transformCozeBotItem = (item: RawCozeBotItem): CozeBotItem => {
+  return {
+    ...item,
+    value: item.bot_id,
+    label: item.bot_name,
+    icon: item.icon_url,
+  }
+}
+
+export const transformAppBuilderBotItem = (item: RawAppBuilderBotItem): AppBuilderBotItem => {
+  return {
+    ...item,
+    value: item.id,
+    label: item.name,
+    icon: getAgentByAgentType(AGENT_TYPES.APP_BUILDER).icon,
+  }
+}
+
+export const transformCozeWorkspaceItem = (item: RawCozeWorkspaceItem): CozeWorkspaceItem => {
+  return {
+    ...item,
+    value: item.id,
+    label: item.name,
+    icon: item.icon_url,
+  }
+}
+
+export const transform53aiBotItem = (item: Raw53aiBotItem): BotItem53aiItem => {
+  return {
+    ...item,
+    value: item.bot_id,
+    label: item.name,
+    icon: item.logo,
+  }
 }
 
 const parseJsonField = <T>(value: string | T, defaultValue: T): T => {
@@ -178,44 +271,44 @@ export const agentApi = {
   },
 
   coze: {
-    workspaces_list() {
+    workspaces_list(params?: { provider_id?: number }): Promise<RawCozeWorkspaceItem[]> {
       return service
-        .get('/api/coze/workspaces')
+        .get('/api/coze/workspaces', { params })
         .then(res => res.data)
         .catch(handleError)
     },
-    bots_list(workspace_id: number) {
+    bots_list(workspace_id: string, params?: { provider_id?: number }): Promise<RawCozeBotItem[]> {
       return service
-        .get(`/api/coze/workspaces/${workspace_id}/bots`)
-        .then(res => res.data)
+        .get(`/api/coze/workspaces/${workspace_id}/bots`, { params })
+        .then(res => res.data || [])
         .catch(handleError)
     },
   },
   appbuilder: {
-    bots_list() {
+    bots_list(params?: { provider_id?: number }): Promise<RawAppBuilderBotItem[]> {
       return service
-        .get('/api/appbuilder/bots')
-        .then(res => res.data)
+        .get('/api/appbuilder/bots', { params })
+        .then(res => res.data || [])
         .catch(handleError)
     },
   },
 
   chat53ai: {
-    bots_list() {
+    bots_list(params?: { provider_id?: number }) {
       return service
-        .get('/api/53ai/bots')
+        .get('/api/53ai/bots', { params })
         .then(res => res.data)
         .catch(handleError)
     },
-    workflow_list() {
+    workflow_list(params?: { provider_id?: number }) {
       return service
-        .get('/api/53ai/workflows')
+        .get('/api/53ai/workflows', { params })
         .then(res => res.data)
         .catch(handleError)
     },
-    workflow_field_list(botId: string) {
+    workflow_field_list(botId: string, params?: { provider_id?: number }) {
       return service
-        .get(`/api/53ai/parameters/${botId}`)
+        .get(`/api/53ai/parameters/${botId}`, { params })
         .then(res => res.data)
         .catch(handleError)
     },

@@ -6,7 +6,7 @@
         <ElFormItem :label="$t('banner.upload_image')">
           <div class="text-[#939499] text-xs w-full">{{ $t('banner.upload_image_tip') }}</div>
           <ul v-if="form.url_list.length > 0" class="mt-4 w-full flex flex-col gap-4">
-            <li v-for="(url, index) in form.url_list" :key="index" class="w-full relative">
+            <li v-for="(url, index) in form.url_list" :key="url" class="w-full relative">
               <UploadImage
                 v-model="form.url_list[index]"
                 class="!w-full !h-[14vw]"
@@ -68,7 +68,7 @@ import UploadImage from '@/components/Upload/image.vue'
 
 import { getDefaultBanner, transformBanner } from '@/api/modules/banner/transform'
 import { bannerApi } from '@/api/modules/banner/index'
-import type { Banner } from '@/api/modules/banner/banner.d'
+import type { Banner } from '@/api/modules/banner/types'
 import { BANNER_CONFIG } from '@/constants/banner'
 
 const UPLOAD_COUNT_LIMIT = BANNER_CONFIG.MAX_IMAGES
@@ -78,7 +78,6 @@ const formRef = ref<FormInstance>()
 const loading = ref(true)
 const submitting = ref(false)
 const form = reactive<Banner>(getDefaultBanner())
-const rules = reactive({})
 const addDisabled = computed(() => {
   return form.url_list.length >= UPLOAD_COUNT_LIMIT
 })

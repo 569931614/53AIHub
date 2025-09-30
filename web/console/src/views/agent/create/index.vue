@@ -60,18 +60,22 @@ import { nextTick, onMounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AgentForm from './platform/index.vue'
-import ChatView from './response/chat.vue'
-import CompletionView from './response/completion.vue'
 import GuideView from './guide.vue'
 import InfoDrawer from './drawer.vue'
-import { useAgentFormStore } from './store'
+import ChatView from './response/chat.vue'
+import CompletionView from './response/completion.vue'
+
 import DialogueRecordView from '@/components/DialogueRecord/index.vue'
 
+import { useAgentFormStore } from './store'
+
 import { AGENT_TYPE } from '@/constants/platform/agent'
-import eventBus from '@/utils/event-bus'
-import { useEnv } from '@/hooks/useEnv'
 import { getAgentByAgentType } from '@/constants/platform/config'
 import type { AgentType } from '@/constants/platform/config'
+
+import eventBus from '@/utils/event-bus'
+
+import { useEnv } from '@/hooks/useEnv'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,8 +162,4 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
-.agent-tabs :deep(.el-tabs__nav-wrap) {
-  /* padding: 0 40px; */
-}
-</style>
+<style scoped></style>

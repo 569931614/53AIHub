@@ -143,6 +143,10 @@ func (ser *CozeService) CheckAndRefreshToken() (ok bool, err error) {
 }
 
 func (ser *CozeService) GetAllWorkspace() ([]*coze.Workspace, error) {
+	logger.SysLogf("CozeService.GetAllWorkspace: Using provider - ID: %d, Name: %s, Type: %d, AccessToken: %s",
+		ser.Provider.ProviderID, ser.Provider.Name, ser.Provider.ProviderType,
+		ser.Provider.AccessToken[:min(len(ser.Provider.AccessToken), 20)]+"...")
+
 	_, err := ser.CheckAndRefreshToken()
 	if err != nil {
 		return nil, err
@@ -167,10 +171,13 @@ func (ser *CozeService) GetAllWorkspace() ([]*coze.Workspace, error) {
 		if page > 20 {
 			break
 		}
+		logger.SysLogf("CozeService.GetAllWorkspace: Fetching page %d for provider %d", page, ser.Provider.ProviderID)
 		workspacesResp, err := api.GetWorkspaces(&ser.Provider, page, pageSize)
 		if err != nil {
+			logger.SysLogf("CozeService.GetAllWorkspace: Error fetching workspaces for provider %d on page %d: %v", ser.Provider.ProviderID, page, err)
 			return nil, err
 		}
+		logger.SysLogf("CozeService.GetAllWorkspace: Got %d workspaces on page %d for provider %d", len(workspacesResp.Workspaces), page, ser.Provider.ProviderID)
 		if len(workspacesResp.Workspaces) == 0 {
 			break
 		}
@@ -180,6 +187,7 @@ func (ser *CozeService) GetAllWorkspace() ([]*coze.Workspace, error) {
 		page++
 	}
 
+	logger.SysLogf("CozeService.GetAllWorkspace: Total workspaces found for provider %d: %d", ser.Provider.ProviderID, len(allWorkspaces))
 	return allWorkspaces, nil
 }
 
@@ -232,6 +240,7 @@ func (ser *CozeService) GetAllBot(workspaceId string) ([]*coze.Bot, error) {
 		}
 
 		for _, bot := range botsResp.SpaceBots {
+			logger.SysLogf("Name: %s, icon: %s", bot.BotName, bot.IconURL)
 			allBots = append(allBots, &bot)
 		}
 
@@ -266,7 +275,16 @@ func (ser *CozeService) CacheBotIconWithUploadFile(botID string, iconURL string,
 	}
 
 	// 不存在，需要下载并保存图标
-	iconData, err := ser.downloadIcon(iconURL)
+	var iconData []byte
+	var err error
+	for i := 0; i < 3; i++ {
+		iconData, err = ser.downloadIcon(iconURL)
+		if err == nil {
+			break
+		}
+		logger.SysLogf("下载图标失败，第 %d 次重试: %v", i+1, err)
+		time.Sleep(200 * time.Millisecond)
+	}
 	if err != nil {
 		return "", fmt.Errorf("下载图标失败: %w", err)
 	}
@@ -380,7 +398,7 @@ func (ser *CozeService) downloadIcon(iconURL string) ([]byte, error) {
 //
 // Returns:
 //   - error: returns nil as the update process runs asynchronously
-func (ser *CozeService) UpdateCozeChannel(botIds []string) error {
+func (ser *CozeService) UpdateCozeChannel(botIds []string, provider *model.Provider) error {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -389,7 +407,7 @@ func (ser *CozeService) UpdateCozeChannel(botIds []string) error {
 		}()
 
 		// Get the existing channel for the current enterprise ID with type Coze (34)
-		existingChannel, err := model.GetFirstChannelByEidAndProviderType(ser.Provider.Eid, int64(channeltype.Coze))
+		existingChannel, err := model.GetFirstChannelByEidAndProviderType(ser.Provider.Eid, int64(channeltype.Coze), provider.ProviderID)
 		if err != nil {
 			logger.SysErrorf("Failed to get Channel: %v", err)
 			return

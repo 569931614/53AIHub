@@ -74,9 +74,10 @@ $ npm run lint
 │   ├── assets/           # 样式跟icon
 │   ├── components/       # 组件
 │   ├── directive/        # 自定义指令
+│   ├── hooks/            # 通用hooks
 │   ├── views/            # 页面
 │   ├── router/           # 路由配置
-│   ├── typings/          # 类型定义
+│   ├── types/            # 类型定义
 │   ├── constants/        # 常用变量
 │   ├── locales/          # 语言包
 │   ├── store/            # 状态管理

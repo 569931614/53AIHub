@@ -131,7 +131,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/SMTP',
         name: 'SMTP',
-        component: () => import('@/views/smtp-setting/index.vue'),
+        component: () => import('@/views/smtp/index.vue'),
       },
       {
         path: '/template-style',

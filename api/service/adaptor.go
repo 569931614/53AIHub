@@ -14,6 +14,7 @@ import (
 	"github.com/53AI/53AIHub/service/hub_adaptor/dify"
 	"github.com/53AI/53AIHub/service/hub_adaptor/n8n"
 	Hub_openai "github.com/53AI/53AIHub/service/hub_adaptor/openai"
+	Hub_tencent "github.com/53AI/53AIHub/service/hub_adaptor/tencent"
 	"github.com/53AI/53AIHub/service/hub_adaptor/yuanqi"
 	"github.com/songquanpeng/one-api/relay/adaptor"
 	"github.com/songquanpeng/one-api/relay/adaptor/aiproxy"
@@ -96,6 +97,8 @@ func GetAdaptor(apiType int) adaptor.Adaptor {
 		return &n8n.Adaptor{}
 	case model.ChannelApiTypeCozeStudio:
 		return &coze.Adaptor{}
+	case model.ChannelApiTypeTencent:
+		return &Hub_tencent.Adaptor{}
 	}
 
 	return nil
@@ -133,6 +136,8 @@ func SetCustomConfig(a *adaptor.Adaptor, customConfig *custom.CustomConfig) erro
 		v.CustomConfig = customConfig
 	case *n8n.Adaptor:
 		v.CustomConfig = customConfig
+	case *Hub_tencent.Adaptor:
+		v.CustomConfig = customConfig
 	}
 	return nil
 }
@@ -154,6 +159,8 @@ func GetCustomConfig(a *adaptor.Adaptor) *custom.CustomConfig {
 	case *yuanqi.Adaptor:
 		return v.CustomConfig
 	case *n8n.Adaptor:
+		return v.CustomConfig
+	case *Hub_tencent.Adaptor:
 		return v.CustomConfig
 	}
 	return nil

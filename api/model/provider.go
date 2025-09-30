@@ -1,5 +1,9 @@
 package model
 
+import (
+	"github.com/53AI/53AIHub/common/logger"
+)
+
 type Provider struct {
 	ProviderID   int64   `json:"provider_id" gorm:"primaryKey;autoIncrement"`
 	Eid          int64   `json:"eid" gorm:"not null;index" example:"1"`
@@ -81,6 +85,22 @@ func GetProvidersByEidAndProviderType(eid int64, providerType int64) ([]Provider
 	return providers, err
 }
 
+func GetProvidersByEidWithFilters(eid int64, providerType int64, name string) ([]Provider, error) {
+	var providers []Provider
+	query := DB.Where("eid = ?", eid)
+
+	if providerType != 0 {
+		query = query.Where("provider_type = ?", providerType)
+	}
+
+	if name != "" {
+		query = query.Where("name LIKE ?", "%"+name+"%")
+	}
+
+	err := query.Find(&providers).Error
+	return providers, err
+}
+
 func GetFirstProviderByEidAndProviderType(eid int64, providerType int64) (provider Provider, err error) {
 	err = DB.Where("eid =? AND provider_type =?", eid, providerType).First(&provider).Error
 	return provider, err
@@ -90,4 +110,32 @@ func GetProvidersByTypeAndAuthStatus(providerType int64, authStatus bool) ([]Pro
 	var providers []Provider
 	err := DB.Where("provider_type = ? and is_authorized = ?", providerType, authStatus).Find(&providers).Error
 	return providers, err
+}
+
+// GetProviderByEidAndProviderTypeWithOptionalID gets a provider by enterprise ID and provider type
+// If providerID is provided (> 0), returns the specific provider
+// If providerID is 0, returns the first provider of that type (backward compatibility)
+func GetProviderByEidAndProviderTypeWithOptionalID(eid int64, providerType int64, providerID int64) (Provider, error) {
+	var provider Provider
+	var err error
+
+	if providerID > 0 {
+		// Specific provider requested
+		err = DB.Where("eid = ? AND provider_type = ? AND provider_id = ?", eid, providerType, providerID).First(&provider).Error
+		if err == nil {
+			logger.SysLogf("GetProviderByEidAndProviderTypeWithOptionalID: Found specific provider - ID: %d, Name: %s, Type: %d", provider.ProviderID, provider.Name, provider.ProviderType)
+		} else {
+			logger.SysLogf("GetProviderByEidAndProviderTypeWithOptionalID: Failed to find specific provider - EID: %d, Type: %d, ProviderID: %d, Error: %v", eid, providerType, providerID, err)
+		}
+	} else {
+		// Backward compatibility: get first provider of this type
+		err = DB.Where("eid = ? AND provider_type = ?", eid, providerType).First(&provider).Error
+		if err == nil {
+			logger.SysLogf("GetProviderByEidAndProviderTypeWithOptionalID: Found first provider - ID: %d, Name: %s, Type: %d", provider.ProviderID, provider.Name, provider.ProviderType)
+		} else {
+			logger.SysLogf("GetProviderByEidAndProviderTypeWithOptionalID: Failed to find first provider - EID: %d, Type: %d, Error: %v", eid, providerType, err)
+		}
+	}
+
+	return provider, err
 }

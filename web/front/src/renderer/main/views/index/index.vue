@@ -91,7 +91,6 @@
             {{ $t('index.toolbox_recommend_desc') }}
           </p>
         </template>
-
         <ToolkitList class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mt-7" :list="showToolkitList" only-all />
 
         <router-link
@@ -160,6 +159,7 @@ const handleSearch = () => {
 }
 
 onMounted(() => {
+  linksStore.loadCategorys()
   linksStore.loadLinks()
   agentStore.loadAgentList()
 })

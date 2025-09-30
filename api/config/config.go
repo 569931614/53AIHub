@@ -27,7 +27,7 @@ var ApiHost = env.String("API_HOST", "")
 var MigrateDBEnabled = env.Bool("MIGRATE_DB_ENABLED", true)
 
 var REDIS_CONN = env.String("REDIS_CONN", "")
-var MAX_UPLOAD_FILE_SIZE_STRING = env.String("MAX_UPLOAD_FILE_SIZE", "15MB")
+var MAX_UPLOAD_FILE_SIZE_STRING = env.String("MAX_UPLOAD_FILE_SIZE", "30MB")
 var MAX_UPLOAD_FILE_SIZE, _ = helper.ParseSize(MAX_UPLOAD_FILE_SIZE_STRING)
 
 var CHANNEL_RETRY_TIMES = env.Int64("CHANNEL_RETRY_TIMES", 3)
