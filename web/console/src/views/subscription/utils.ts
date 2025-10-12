@@ -1,6 +1,6 @@
 import { deepCopy } from '@/utils'
 import { img_host } from '@/utils/config'
-import type { SubscriptionItem, PricingInfo } from '@/typings/subscription'
+import type { SubscriptionItem, PricingInfo } from '@/types/subscription'
 
 /**
  * 创建默认的价格信息
@@ -14,7 +14,7 @@ export const createDefaultPricingInfo = (
   currency: type === 1 ? 'CNY' : '',
   relation_id: 0,
   time_unit: timeUnit,
-  type
+  type,
 })
 
 /**
@@ -44,7 +44,7 @@ export const createNewSubscriptionItem = (
     year_info: createDefaultPricingInfo('year', 1),
     month_info: createDefaultPricingInfo('month', 1),
     point_month_info: createDefaultPricingInfo('month', 2, '0'),
-    agents: []
+    agents: [],
   }
 }
 
@@ -69,21 +69,21 @@ export const transformSubscriptionItemForSave = (
       currency: item.year_info.currency,
       relation_id: item.year_info.relation_id || 0,
       time_unit: item.year_info.time_unit,
-      type: item.year_info.type
+      type: item.year_info.type,
     },
     {
       amount: Math.round(Number(item.month_info.amount) * 10000) / 100,
       currency: item.month_info.currency,
       relation_id: item.month_info.relation_id || 0,
       time_unit: item.month_info.time_unit,
-      type: item.month_info.type
+      type: item.month_info.type,
     },
     {
       amount: Number(item.point_month_info.amount || 0),
       currency: item.point_month_info.currency,
       relation_id: item.point_month_info.relation_id || 0,
       time_unit: item.point_month_info.time_unit,
-      type: item.point_month_info.type
-    }
-  ]
+      type: item.point_month_info.type,
+    },
+  ],
 })

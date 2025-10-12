@@ -21,8 +21,8 @@ import (
 // @Router /api/navigations [get]
 func GetNavigations(c *gin.Context) {
 	eid := config.GetEID(c)
-
 	user, err := model.GetLoginUser(c)
+
 	if err == nil {
 		eid = user.Eid
 	}
@@ -36,6 +36,11 @@ func GetNavigations(c *gin.Context) {
 		if nav.Type == 3 { // 添加类型判断
 			nav.LoadContent()
 		}
+		// 处理空图标URL，设置默认图标
+		if nav.Icon == "" {
+			nav.Icon = "/static/images/navigation/default.svg"
+		}
+
 	}
 	c.JSON(http.StatusOK, model.Success.ToResponse(navigations))
 }
@@ -45,6 +50,7 @@ type NavigationRequest struct {
 	JumpPath string `json:"jump_path" binding:"required"` // 跳转路径
 	Config   string `json:"config" binding:"required"`    // 配置信息 json字符串
 	Sort     int    `json:"sort"`                         // 排序
+	Icon     string `json:"icon"`                         // 图标
 	Type     int    `json:"type"`                         // 导航类型 2: 外部链接 3: 自定义页面
 }
 
@@ -58,18 +64,35 @@ type NavigationRequest struct {
 // @Success 200 {object} model.CommonResponse{data=model.Navigation} "成功响应"
 // @Router /api/navigations [post]
 func CreateNavigation(c *gin.Context) {
-	var nav model.Navigation
-	if err := c.ShouldBindJSON(&nav); err != nil {
+	var req NavigationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, model.ParamError.ToResponse(err))
 		return
 	}
 
-	if nav.Type == model.NavigationTypeSystemBuiltIn {
+	if req.Type == model.NavigationTypeSystemBuiltIn {
 		c.JSON(http.StatusBadRequest, model.ParamError.ToResponse(errors.New("系统内置导航不能创建")))
 		return
 	}
 
-	nav.Eid = config.GetEID(c)
+	// 处理空图标URL，设置默认图标
+	icon := req.Icon
+	if icon == "" {
+		icon = "/static/images/navigation/default.svg"
+	}
+
+	//从DTO映射到持久化模型
+	nav := model.Navigation{
+		Name:     req.Name,
+		JumpPath: req.JumpPath,
+		Config:   req.Config,
+		Sort:     req.Sort,
+		Icon:     icon,
+		Type:     req.Type,
+		Eid:      config.GetEID(c), // 服务端填充租户/企业ID，避免被客户端篡改
+	}
+
+	//持久化
 	if err := nav.Create(); err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(err))
 		return
@@ -85,6 +108,7 @@ func CreateNavigation(c *gin.Context) {
 		IP:       utils.GetClientIP(c),
 	}
 	model.CreateSystemLog(&log)
+
 	c.JSON(http.StatusOK, model.Success.ToResponse(nav))
 }
 
@@ -107,6 +131,12 @@ func GetNavigation(c *gin.Context) {
 	if nav.Type == 3 { // 添加类型判断
 		nav.LoadContent()
 	}
+
+	// 处理空图标URL，设置默认图标
+	if nav.Icon == "" {
+		nav.Icon = "/static/images/navigation/default.svg"
+	}
+
 	c.JSON(http.StatusOK, model.Success.ToResponse(nav))
 }
 
@@ -133,10 +163,17 @@ func UpdateNavigation(c *gin.Context) {
 	if handleNotFound(c, nav, err) {
 		return
 	}
-
 	oldNav := *nav
+
+	// 处理空图标URL，设置默认图标
+	icon := req.Icon
+	if icon == "" {
+		icon = "/static/images/navigation/default.svg"
+	}
+
 	if err := model.UpdateNavigation(navID, map[string]interface{}{
 		"name":      req.Name,
+		"icon":      req.Icon,
 		"jump_path": req.JumpPath,
 		"sort":      req.Sort,
 		"config":    req.Config,
@@ -222,6 +259,7 @@ func DeleteNavigation(c *gin.Context) {
 		IP:       utils.GetClientIP(c),
 	}
 	model.CreateSystemLog(&log)
+
 	c.JSON(http.StatusOK, model.Success.ToResponse(nil))
 }
 
@@ -263,7 +301,6 @@ func UpdateNavigationStatus(c *gin.Context) {
 	if req.Status == model.NavigationStatusDisabled {
 		statusText = "不显示"
 	}
-
 	log := model.SystemLog{
 		Eid:      eid,
 		UserID:   config.GetUserId(c),
@@ -274,6 +311,7 @@ func UpdateNavigationStatus(c *gin.Context) {
 		IP:       utils.GetClientIP(c),
 	}
 	model.CreateSystemLog(&log)
+
 	c.JSON(http.StatusOK, model.Success.ToResponse(nil))
 }
 
@@ -335,7 +373,6 @@ func handleNotFound(c *gin.Context, nav *model.Navigation, err error) bool {
 // @Router /api/navigations/init [post]
 func InitSystemNavigation(c *gin.Context) {
 	eid := config.GetEID(c)
-
 	user, err := model.GetLoginUser(c)
 	if err == nil {
 		eid = user.Eid
@@ -461,6 +498,7 @@ func CreateNavigationContent(c *gin.Context) {
 		IP:       utils.GetClientIP(c),
 	}
 	model.CreateSystemLog(&log)
+
 	c.JSON(http.StatusOK, model.Success.ToResponse(content))
 }
 

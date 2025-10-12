@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,16 +13,27 @@ import (
 
 // autoAssignCozeStudioProvider automatically assigns a ProviderID for CozeStudio channels
 // when ProviderID is 0 in the request
+// In multi-provider environments, this should be explicitly specified by the client
 func autoAssignCozeStudioProvider(channel *model.Channel) error {
 	// Check if this is a CozeStudio channel and ProviderID is 0
 	if channel.Type == model.ChannelApiTypeCozeStudio && channel.ProviderID == 0 {
-		// Get the first Provider with ProviderTypeCozeStudio for this enterprise
-		provider, err := model.GetFirstProviderByEidAndProviderType(channel.Eid, model.ProviderTypeCozeStudio)
+		// Get all CozeStudio providers for this enterprise
+		providers, err := model.GetProvidersByEidAndProviderType(channel.Eid, model.ProviderTypeCozeStudio)
 		if err != nil {
 			return err
 		}
-		// Assign the ProviderID to the channel
-		channel.ProviderID = provider.ProviderID
+		if len(providers) == 0 {
+			return fmt.Errorf("no CozeStudio provider found for enterprise %d", channel.Eid)
+		}
+
+		// If there's only one provider, auto-assign it
+		if len(providers) == 1 {
+			channel.ProviderID = providers[0].ProviderID
+		} else {
+			// Multiple providers found - this is ambiguous in multi-provider environment
+			// Return error to force explicit provider selection
+			return fmt.Errorf("multiple CozeStudio providers found (%d), please specify provider_id explicitly", len(providers))
+		}
 	}
 	return nil
 }

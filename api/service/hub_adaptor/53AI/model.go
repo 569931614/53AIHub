@@ -8,6 +8,7 @@ type StreamResponse struct {
 	TaskID         string          `json:"task_id"`
 	ID             string          `json:"id"`
 	Answer         string          `json:"answer"`
+	Message        string          `json:"message"`
 	AppendContents []AppendContent `json:"append_content,omitempty"`
 }
 

@@ -5,9 +5,15 @@
         <div class="text-base text-[#1D1E1F] font-medium mb-3">
           {{ $t('agent_app.coze_agent_cn') }}
         </div>
+        <el-form-item :label="$t('module.website_info_name')">
+          <el-select v-model="store.form_data.custom_config.provider_id" size="large" @change="onProviderChange">
+            <el-option v-for="item in providers" :key="item.provider_id" :label="item.name" :value="item.provider_id" />
+          </el-select>
+        </el-form-item>
+
         <AgentType
           v-model="store.agent_type"
-          :disabled="store.agent_id"
+          :disabled="!!store.agent_id"
           :options="agentTypeOptions"
           @change="handleAgentTypeChange"
         />
@@ -21,33 +27,38 @@
         >
           <el-input v-model="store.form_data.custom_config.coze_bot_url" size="large" />
         </el-form-item>
-        <div v-else-if="store.agent_type === AGENT_TYPES.COZE_AGENT_CN" class="flex items-center gap-4 mb-9">
-          <ElFormItem
-            class="flex-1 mb-0"
-            :label="$t('agent.coze.workspace')"
-            prop="custom_config.coze_workspace_id"
-            :rules="generateInputRules({ message: 'form_select_placeholder' })"
-          >
-            <SelectPlus
-              v-model="store.form_data.custom_config.coze_workspace_id"
-              size="large"
-              :options="store.coze_workspace_options"
-            />
-          </ElFormItem>
-          <ElFormItem
-            class="flex-1 mb-0"
-            :label="$t('agent.name')"
-            prop="custom_config.coze_bot_id"
-            :rules="generateInputRules({ message: 'form_select_placeholder' })"
-          >
-            <SelectPlus
-              v-model="store.form_data.custom_config.coze_bot_id"
-              size="large"
-              :options="store.coze_bot_options"
-              @change="onBotChange"
-            />
-          </ElFormItem>
-        </div>
+        <template v-else-if="store.agent_type === AGENT_TYPES.COZE_AGENT_CN">
+          <div class="flex items-center gap-4 mb-9">
+            <ElFormItem
+              class="flex-1 mb-0"
+              :label="$t('agent.coze.workspace')"
+              prop="custom_config.coze_workspace_id"
+              :rules="generateInputRules({ message: 'form_select_placeholder' })"
+            >
+              <SelectPlus
+                v-model="store.form_data.custom_config.coze_workspace_id"
+                size="large"
+                :use-i18n="false"
+                :options="workspaces"
+                @change="loadBots"
+              />
+            </ElFormItem>
+            <ElFormItem
+              class="flex-1 mb-0"
+              :label="$t('agent.name')"
+              prop="custom_config.coze_bot_id"
+              :rules="generateInputRules({ message: 'form_select_placeholder' })"
+            >
+              <SelectPlus
+                v-model="store.form_data.custom_config.coze_bot_id"
+                size="large"
+                :options="bots"
+                :use-i18n="false"
+                @change="onBotChange"
+              />
+            </ElFormItem>
+          </div>
+        </template>
         <div class="text-base text-[#1D1E1F] font-medium mb-4">
           {{ $t('agent.base_info') }}
         </div>
@@ -85,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import AgentType from '../components/agent-type.vue'
 import AgentInfo from '../components/agent-info.vue'
 import BaseConfig from '../components/base-config.vue'
@@ -95,12 +106,20 @@ import FieldInput from '../components/field-input.vue'
 import RelateApp from '../components/relate-agents.vue'
 
 import { useAgentFormStore } from '../store'
-// import LimitConfig from '../components/limit-config.vue'
 import { generateInputRules } from '@/utils/form-rule'
 
-import { AGENT_TYPES } from '@/constants/platform/config'
+import { AGENT_TYPES, PROVIDER_VALUES } from '@/constants/platform/config'
+import providersApi from '@/api/modules/providers/index'
+import { transformProviderList } from '@/api/modules/providers/transform'
+import { ProviderItem } from '@/api/modules/providers/types'
+import agentApi, {
+  CozeBotItem,
+  CozeWorkspaceItem,
+  transformCozeWorkspaceItem,
+  transformCozeBotItem,
+} from '@/api/modules/agent'
 
-defineProps({
+const props = defineProps({
   showChannelConfig: {
     type: Boolean,
     default: false,
@@ -108,6 +127,10 @@ defineProps({
 })
 
 const store = useAgentFormStore()
+
+const providers = ref<ProviderItem[]>([])
+const workspaces = ref<CozeWorkspaceItem[]>([])
+const bots = ref<CozeBotItem[]>([])
 
 const agentTypeOptions = [
   {
@@ -130,8 +153,8 @@ const validateForm = async () => form_ref.value.validate()
 
 const handleAgentTypeChange = (value: string) => {
   if (value === AGENT_TYPES.COZE_AGENT_CN) {
-    store.form_data.custom_config.coze_workspace_id = store.coze_workspace_options[0].value
-    store.form_data.custom_config.coze_bot_id = store.coze_bot_options[0].value
+    store.form_data.custom_config.coze_workspace_id = workspaces.value[0].value
+    store.form_data.custom_config.coze_bot_id = bots.value[0]?.value || ''
   } else {
     store.form_data.custom_config.coze_workspace_id = ''
     store.form_data.custom_config.coze_bot_id = ''
@@ -147,19 +170,53 @@ const onBotChange = (data: { value: string; option: any }) => {
   // store.form_data.custom_config.coze_bot_id = value.value
 }
 
+const loadBots = async () => {
+  const customConfig = store.form_data.custom_config
+  const list = await agentApi.coze.bots_list(customConfig.coze_workspace_id, {
+    provider_id: customConfig.provider_id,
+  })
+  bots.value = list.map(transformCozeBotItem)
+}
+
+const loadCozeWorkspaces = async () => {
+  const list = await agentApi.coze.workspaces_list({
+    provider_id: store.form_data.custom_config.provider_id,
+  })
+  workspaces.value = list.map(transformCozeWorkspaceItem)
+
+  if (workspaces.value.length && !store.form_data.custom_config.coze_workspace_id) {
+    store.form_data.custom_config.coze_workspace_id = workspaces.value[0].value
+  }
+  loadBots()
+}
+
+const loadProviders = async () => {
+  const list = await providersApi.list({
+    providerType: PROVIDER_VALUES.COZE_CN,
+  })
+  providers.value = transformProviderList(list)
+
+  if (providers.value.length && !store.form_data.custom_config.provider_id) {
+    store.form_data.custom_config.provider_id = providers.value[0].provider_id
+  }
+  loadCozeWorkspaces()
+}
+
+const onProviderChange = () => {
+  loadCozeWorkspaces()
+  store.form_data.custom_config.coze_workspace_id = ''
+  store.form_data.custom_config.coze_bot_id = ''
+}
+
+onMounted(() => {
+  if (props.showChannelConfig) {
+    loadProviders()
+  }
+})
+
 defineExpose({
   validateForm,
 })
-
-watch(
-  () => store.form_data.custom_config.coze_workspace_id,
-  workspace_id => {
-    if (workspace_id) {
-      store.loadCozeBotOptions(workspace_id)
-    }
-  },
-  { immediate: true }
-)
 </script>
 
 <style scoped></style>

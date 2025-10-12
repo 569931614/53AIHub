@@ -97,6 +97,8 @@ We welcome your contributions—whether code, ideas, or issues. Feel free to sha
 * [GitHub Discussion](https://github.com/53ai/53aihub/discussions): Share your apps and ideas with the community.
 * [GitHub Issues](https://github.com/53ai/53aihub/issues): Report bugs or problems.
 
+![_20250928150823_708_3019.png](https://kmapirc.53ai.com/api/preview/21121c57e6859f931144ef116faebe21.png)
+
 ## Compliance Certifications
 
 53AI has obtained the following certifications:

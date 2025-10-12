@@ -3,8 +3,8 @@
     <div v-if="!showList.length" class="col-span-full flex flex-col items-center justify-center">
       <el-empty :description="$t('common.no_data')" />
     </div>
-    <template v-for="item in showList" :key="item.group_id">
-      <h2 v-if="+item.group_id" :id="`group_${item.group_id}`" class="col-span-full text-placeholder">{{ item.group_name }}</h2>
+    <template v-for="item in showList" :key="item">
+      <h2 v-if="item.group_id !== null" :id="`group_${item.group_id}`" class="col-span-full text-placeholder">{{ item.group_name }}</h2>
       <div
         v-for="row in item.children"
         :key="row.id"
@@ -98,11 +98,11 @@ const highlightText = (text: string, keyword: string) => {
 }
 
 const showList = computed(() => {
-  const categories = linksStore.categorys?.filter((item) => (props.onlyAll ? item.group_id === 0 : item.group_id !== 0)) || []
+  const categories = linksStore.categorys || []
 
   const links = linksStore.links || []
 
-  return categories
+  let list = categories
     .map((category) => {
       const children = links.filter((link) => {
         const hasAccess = hasPermission(userStore.info.group_ids || [], (link as any).user_group_ids || [])
@@ -117,9 +117,22 @@ const showList = computed(() => {
           })
         : children
 
-      return { ...category, children: filteredChildren }
+      return props.onlyAll ? { group_id: null, group_name: null, children: filteredChildren } : { ...category, children: filteredChildren }
     })
     .filter((category) => category.children.length > 0)
+  // 首页最多展示6项
+  if (props.onlyAll) {
+    const children: any = []
+    list.forEach((item: any) => children.push(...item.children))
+    list = [
+      {
+        group_id: null,
+        group_name: null,
+        children: children.slice(0, 6)
+      }
+    ]
+  }
+  return list
 })
 
 const handleCardClick = (item: Link.State) => {

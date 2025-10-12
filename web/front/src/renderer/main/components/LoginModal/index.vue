@@ -4,9 +4,7 @@
     v-model="isVisible"
     class="login-dialog"
     destroy-on-close
-    :style="{
-      backgroundImage: `url(${$getPublicPath('/images/login_bg.png')})`
-    }"
+    :style="dialogStyle"
     :close-on-click-modal="false"
     :show-close="login_way !== 'bind_mobile'"
     center
@@ -38,29 +36,15 @@
       </div>
     </template>
     <template v-else>
-      <!-- 密码登陆的form表单 -->
-      <el-form
-        v-if="login_way === LOGIN_WAY.password_login"
-        ref="formRef"
-        label-position="top"
-        :model="form"
-        :rules="rules"
-        class="mt-7"
-        @keyup.enter="handleSubmit"
-      >
-        <el-form-item :label="$t('form.account')" prop="username">
-          <el-input
-            v-model="form.username"
-            v-trim
-            size="large"
-            class="el-input--main"
-            :placeholder="$t('form.input_placeholder') + $t('form.email')"
-            clearable
-          />
+      <!-- 统一表单 -->
+      <el-form ref="formRef" label-position="top" :model="form" :rules="rules" class="mt-7" @keyup.enter="handleSubmit">
+        <!-- 用户名输入框 -->
+        <el-form-item :label="getUsernameLabel()" prop="username">
+          <el-input v-model="form.username" v-trim size="large" class="el-input--main" :placeholder="getUsernamePlaceholder()" clearable />
         </el-form-item>
 
-        <!-- 密码的输入框 -->
-        <el-form-item :label="$t('form.password')" prop="password">
+        <!-- 密码输入框 -->
+        <el-form-item v-if="login_way === LOGIN_WAY.password_login" :label="$t('form.password')" prop="password">
           <el-input
             v-model="form.password"
             v-trim
@@ -68,51 +52,30 @@
             size="large"
             class="el-input--main"
             :placeholder="$t('form.input_placeholder') + $t('form.password')"
-          ></el-input>
-        </el-form-item>
-      </el-form>
-
-      <!-- 短信登陆的form表单 -->
-      <el-form
-        v-else-if="login_way === LOGIN_WAY.message_login || login_way === LOGIN_WAY.bind_mobile"
-        ref="formRef"
-        label-position="top"
-        :model="form"
-        :rules="rules"
-        class="mt-7"
-        @keyup.enter="handleSubmit"
-      >
-        <el-form-item :label="$t('form.mobile')" prop="username">
-          <el-input
-            v-model="form.username"
-            v-trim
-            size="large"
-            class="el-input--main"
-            :placeholder="$t('form.input_placeholder') + $t('form.account_alias')"
-            clearable
           />
         </el-form-item>
 
-        <el-form-item :label="login_way === LOGIN_WAY.bind_mobile ? '' : $t('form.verify_code')" prop="verify_code">
-          <div class="flex items-center" style="width: 100%">
-            <el-input
-              v-model="form.verify_code"
-              v-trim
-              size="large"
-              class="el-input--main no-right-radius w-80"
-              :placeholder="$t('form.input_placeholder') + $t('form.verify_code')"
-            ></el-input>
-            <el-button
-              v-debounce
-              :disabled="isSending || !isMobile"
-              class="!bg-[#f5f5f5] border-0 px-3 h-[44px] w-29 no-left-radius"
-              @click.stop="handleGetCode"
-            >
-              <div :class="['text-sm', 'pl-5', 'border-l', 'pr-1', 'text-[#2563EB]', { 'text-[#9A9A9A]': isSending || !isMobile }]">
-                {{ codeCount ? `${codeCount}s` : $t('form.get_verify_code') }}
-              </div>
-            </el-button>
-          </div>
+        <!-- 验证码输入框 -->
+        <el-form-item
+          v-if="login_way === LOGIN_WAY.message_login || login_way === LOGIN_WAY.bind_mobile"
+          :label="getVerifyCodeLabel()"
+          prop="verify_code"
+        >
+          <el-input
+            v-model="form.verify_code"
+            v-trim
+            size="large"
+            class="el-input--main no-right-radius"
+            :placeholder="$t('form.input_placeholder') + $t('form.verify_code')"
+          >
+            <template #append>
+              <el-button v-debounce :disabled="isSending || !isMobile" class="!bg-[#f5f5f5] border-0 w-29 no-left-radius" @click.stop="handleGetCode">
+                <div :class="['text-[#2563EB]', { 'text-[#9A9A9A]': isSending || !isMobile }]">
+                  {{ codeCount ? `${codeCount}s` : $t('form.get_verify_code') }}
+                </div>
+              </el-button>
+            </template>
+          </el-input>
         </el-form-item>
       </el-form>
 
@@ -176,30 +139,12 @@
   </el-dialog>
 
   <!-- 注册弹窗 -->
-  <el-dialog
-    v-model="registerVisible"
-    class="login-dialog"
-    destroy-on-close
-    :style="{
-      backgroundImage: `url(${$getPublicPath('/images/login_bg.png')})`
-    }"
-    :close-on-click-modal="false"
-    center
-  >
+  <el-dialog v-model="registerVisible" class="login-dialog" destroy-on-close :style="dialogStyle" :close-on-click-modal="false" center>
     <Register ref="registerRef" :open-s-m-t-p="openSMTP" @success="handleClose" @close="handleClose"></Register>
   </el-dialog>
 
   <!-- 重置密码弹窗 -->
-  <el-dialog
-    v-model="forgetPasswordVisible"
-    class="login-dialog"
-    destroy-on-close
-    :style="{
-      backgroundImage: `url(${$getPublicPath('/images/login_bg.png')})`
-    }"
-    :close-on-click-modal="false"
-    center
-  >
+  <el-dialog v-model="forgetPasswordVisible" class="login-dialog" destroy-on-close :style="dialogStyle" :close-on-click-modal="false" center>
     <ElButton class="absolute top-8 left-8 !text-[#B9BEC2]" type="info" link @click="handleClose">
       <ElIcon class="mr-1">
         <ArrowLeft />
@@ -257,9 +202,6 @@ const isVisible = ref(false)
 
 const isSending = ref(true)
 
-const isMobile = computed(() => {
-  return /^1[3-9]\d{9}$/.test(form.username)
-})
 const LOGIN_WAY = {
   password_login: 'password_login',
   message_login: 'message_login',
@@ -277,6 +219,31 @@ const form = reactive({
   password: '',
   verify_code: ''
 })
+
+// 计算属性
+const isMobile = computed(() => /^1[3-9]\d{9}$/.test(form.username))
+
+const dialogStyle = computed(() => ({
+  backgroundImage: `url(${window.$getPublicPath('/images/login_bg.png')})`
+}))
+
+const showVerifyCode = computed(() => {
+  return [LOGIN_WAY.message_login, LOGIN_WAY.bind_mobile].includes(login_way.value)
+})
+
+// 工具函数
+const getUsernameLabel = () => {
+  if (login_way.value === LOGIN_WAY.password_login) return window.$t('form.account')
+  return window.$t('form.mobile')
+}
+
+const getUsernamePlaceholder = () => {
+  return window.$t('form.input_placeholder') + window.$t('form.account')
+}
+
+const getVerifyCodeLabel = () => {
+  return login_way.value === LOGIN_WAY.bind_mobile ? '' : window.$t('form.verify_code')
+}
 
 const rules = computed(() => {
   return {
@@ -340,66 +307,86 @@ const accountLogin = () => {
 const handleSubmit = () => {
   return formRef.value?.validate().then(async (valid) => {
     if (!valid) return
+
     try {
-      if (['message_login', 'bind_mobile'].includes(login_way.value)) {
-        await commonApi.verifycode({
-          mobile: form.username,
-          verifycode: form.verify_code,
-          type: '1'
-        })
-        if (login_way.value === 'bind_mobile') {
-          await userStore.bind_wechat({
-            mobile: form.username,
-            verify_code: form.verify_code,
-            openid: oauth_data.value.openid,
-            unionid: oauth_data.value.unionid,
-            nickname: oauth_data.value.nickname
-          })
-        } else {
-          await userStore.sms_login({
-            mobile: form.username,
-            verify_code: form.verify_code
-          })
-        }
-      } else {
-        await accountLogin()
-      }
+      await performLogin()
       ElMessage.success(window.$t('status.login_success'))
       agentStore.loadAgentList()
       close()
     } catch (error) {
-      const response = error.response || {}
-      const data = response.data || {}
-      const message = data.message || ''
-      if (message.includes('record not found')) {
-        // 本地版自动注册
-        if (isOpLocalEnv.value && !openSMTP.value) {
-          await userStore.register({
-            username: form.username,
-            password: form.password
-          })
-          ElMessage.success(window.$t('status.login_success'))
-          agentStore.loadAgentList()
-          isVisible.value = false
-        } else {
-          ElMessage.warning(window.$t('status.not_found_account'))
-        }
-      }
-      console.log(error)
+      await handleLoginError(error)
     }
   })
 }
 
-// 添加重置函数
-const resetForm = () => {
-  form.username = ''
-  form.verify_code = ''
-  form.password = ''
-  clearFormValidation()
+// 执行登录逻辑
+const performLogin = async () => {
+  if (showVerifyCode.value) {
+    await commonApi.verifycode({
+      mobile: form.username,
+      verifycode: form.verify_code,
+      type: '1'
+    })
+
+    if (login_way.value === 'bind_mobile') {
+      await userStore.bind_wechat({
+        mobile: form.username,
+        verify_code: form.verify_code,
+        openid: oauth_data.value.openid,
+        unionid: oauth_data.value.unionid,
+        nickname: oauth_data.value.nickname
+      })
+    } else {
+      await userStore.sms_login({
+        mobile: form.username,
+        verify_code: form.verify_code
+      })
+    }
+  } else {
+    await accountLogin()
+  }
+}
+
+// 处理登录错误
+const handleLoginError = async (error) => {
+  const response = error.response || {}
+  const data = response.data || {}
+  const message = data.message || ''
+
+  if (message.includes('record not found')) {
+    if (isOpLocalEnv.value && !openSMTP.value) {
+      await userStore.register({
+        username: form.username,
+        password: form.password
+      })
+      ElMessage.success(window.$t('status.login_success'))
+      agentStore.loadAgentList()
+      isVisible.value = false
+    } else {
+      ElMessage.warning(window.$t('status.not_found_account'))
+    }
+  }
+  console.log(error)
 }
 
 const oauth_data = ref<any>({})
 
+// 重置表单
+const resetForm = () => {
+  Object.assign(form, {
+    username: '',
+    verify_code: '',
+    password: ''
+  })
+  clearFormValidation()
+}
+
+// 清除表单验证
+const clearFormValidation = () => {
+  formRef.value?.clearValidate()
+}
+
+// 事件处理函数
 const handleLOGIN_WAY = (value: LoginWay) => {
   login_way.value = value
   resetForm()
@@ -430,15 +417,8 @@ const handleForgetPassword = () => {
   resetForm()
 }
 
-// 添加清除表单验证的方法
-const clearFormValidation = () => {
-  if (formRef.value) {
-    formRef.value.clearValidate()
-  }
-}
-
+// 弹窗控制函数
 const open = (data: { way?: LoginWay; openid?: string; unionid?: string } = {}) => {
-  // login_way.value = data.way || LOGIN_WAY.password_login
   if (data.way === LOGIN_WAY.wechat_login && data.openid) {
     handleOauthSuccess({
       openid: data.openid,
@@ -456,6 +436,7 @@ const close = () => {
   emit('close')
 }
 
+// OAuth 登录成功处理
 const handleOauthSuccess = async (data: any) => {
   await userStore.wechat_login({ unionid: data.unionid }).catch((err) => {
     oauth_data.value = data
@@ -467,6 +448,7 @@ const handleOauthSuccess = async (data: any) => {
   close()
 }
 
+// 加载 SMTP 配置
 const loadSMTP = async () => {
   const { data } = await enterpriseApi.getSMTPInfo('smtp')
   openSMTP.value = data

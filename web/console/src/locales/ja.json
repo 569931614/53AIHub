@@ -644,6 +644,7 @@
     "auth_completed_tip": "確認您已完成應用綁定，確認後將刷新頁面"
   },
   "action_visit": "訪問します",
+  "action_test": "テスト",
   "action_add": "追加",
   "action_add_success": "追加しました",
   "action_create": "作成",
@@ -651,6 +652,8 @@
   "action_save": "保存",
   "action_save_success": "保存しました",
   "action_save_failed": "保存失敗",
+  "action_test_success": "可用",
+  "action_test_failed": "不可用",
   "action_delete": "削除",
   "action_delete_tip": "削除ヒント",
   "action_delete_confirm": "このデータを削除してもよろしいですか？",
@@ -1132,5 +1135,10 @@
     "array_image": "配列画像",
     "array_audio": "配列オーディオ",
     "array_video": "配列ビデオ"
+  },
+  "platform": {
+    "model_tip": "{total} { type } モデル",
+    "model_test_success": "テスト成功、「{platform}」現在正常に使用できます",
+    "model_test_failed": "テスト失敗、「{platform}」現在正常に使用できません"
   }
 }

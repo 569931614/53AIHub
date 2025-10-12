@@ -11,15 +11,14 @@ import (
 	"strings"
 
 	"github.com/53AI/53AIHub/common/storage"
-	"github.com/53AI/53AIHub/service/hub_adaptor/custom"
-	"github.com/songquanpeng/one-api/common/render"
-
 	db_model "github.com/53AI/53AIHub/model"
+	"github.com/53AI/53AIHub/service/hub_adaptor/custom"
 	"github.com/gin-gonic/gin"
 	"github.com/songquanpeng/one-api/common"
 	"github.com/songquanpeng/one-api/common/conv"
 	"github.com/songquanpeng/one-api/common/helper"
 	"github.com/songquanpeng/one-api/common/logger"
+	"github.com/songquanpeng/one-api/common/render"
 	"github.com/songquanpeng/one-api/relay/adaptor/coze/constant/messagetype"
 	"github.com/songquanpeng/one-api/relay/adaptor/openai"
 	"github.com/songquanpeng/one-api/relay/meta"
@@ -63,20 +62,17 @@ func ConvertRequest(textRequest model.GeneralOpenAIRequest, meta *meta.Meta, cus
 			continue
 		}
 		var contentObjs []db_model.ObjectStringContent
-		var cozeMessage AdditionalMessage
 		if err := json.Unmarshal([]byte(contentStr), &contentObjs); err == nil {
 			if len(contentObjs) == 0 {
 				continue
 			}
+			var mergedContent []map[string]interface{}
 			for _, contentObj := range contentObjs {
 				if contentObj.Type == "text" {
-					cozeMessage = AdditionalMessage{
-						Role:        message.Role,
-						Content:     contentObj.Content,
-						ContentType: ContentTypeText,
-						Type:        typeStr,
-					}
-					cozeRequest.AdditionalMessages = append(cozeRequest.AdditionalMessages, cozeMessage)
+					mergedContent = append(mergedContent, map[string]interface{}{
+						"type": "text",
+						"text": contentObj.Content,
+					})
 					continue
 				}
 				uoloadFile := contentObj.GetUploadFile()
@@ -110,23 +106,27 @@ func ConvertRequest(textRequest model.GeneralOpenAIRequest, meta *meta.Meta, cus
 					}
 				}
 
-				var contentObjStr string
+				var contentType string
 				if strings.HasPrefix(uoloadFile.MimeType, "image/") {
-					contentObjStr = fmt.Sprintf(`[{"type":"image","file_id":"%s"}]`, fileMapping.ChannelFileID)
+					contentType = "image"
 				} else {
-					contentObjStr = fmt.Sprintf(`[{"type":"file","file_id":"%s"}]`, fileMapping.ChannelFileID)
+					contentType = "file"
 				}
-
-				cozeMessage = AdditionalMessage{
-					Role:        message.Role,
-					Content:     contentObjStr,
-					ContentType: ContentTypeObjectString,
-					Type:        typeStr,
-				}
-				cozeRequest.AdditionalMessages = append(cozeRequest.AdditionalMessages, cozeMessage)
+				mergedContent = append(mergedContent, map[string]interface{}{
+					"type":    contentType,
+					"file_id": fileMapping.ChannelFileID,
+				})
 			}
+			mergedJSON, _ := json.Marshal(mergedContent)
+			cozeMessage := AdditionalMessage{
+				Role:        message.Role,
+				Content:     string(mergedJSON),
+				ContentType: ContentTypeObjectString,
+				Type:        typeStr,
+			}
+			cozeRequest.AdditionalMessages = append(cozeRequest.AdditionalMessages, cozeMessage)
 		} else {
-			cozeMessage = AdditionalMessage{
+			cozeMessage := AdditionalMessage{
 				Role:        message.Role,
 				Content:     contentStr,
 				ContentType: contentType,
@@ -202,7 +202,7 @@ func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusC
 		if data == "" || data == "\n" {
 			continue
 		}
-		logger.SysLogf("coze stream : %s", data)
+		// logger.SysLogf("coze stream : %s", data)
 		if strings.HasPrefix(data, "event:") {
 			eventStr = strings.TrimPrefix(data, "event:")
 		}

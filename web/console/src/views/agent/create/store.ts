@@ -4,7 +4,6 @@ import { CHANNEL_TYPE_VALUE_MAP, channelApi } from '@/api/modules/channel'
 import { groupApi } from '@/api/modules/group'
 import { useEnterpriseStore } from '@/stores'
 import {
-  AGENT_TYPES,
   getAgentByAgentType,
   getModelChannelTypes,
   BACKEND_AGENT_TYPE,
@@ -32,10 +31,6 @@ export const useAgentFormStore = defineStore('agent-form-store', {
     agent_data: Record<string, any>
     group_options: any[]
     model_options: any[]
-    coze_workspace_options: any[]
-    coze_bot_options: any[]
-    app_builder_bot_options: any[]
-    chat53ai_app_options: any[]
     is_new: boolean
   } => ({
     saving: false,
@@ -59,6 +54,7 @@ export const useAgentFormStore = defineStore('agent-form-store', {
       custom_config: {
         agent_type: 'prompt',
         agent_mode: 'chat',
+        provider_id: 0,
         coze_workspace_id: '',
         coze_bot_id: '',
         coze_bot_url: '',
@@ -83,10 +79,6 @@ export const useAgentFormStore = defineStore('agent-form-store', {
     agent_data: {},
     group_options: [],
     model_options: [],
-    coze_workspace_options: [],
-    coze_bot_options: [],
-    app_builder_bot_options: [],
-    chat53ai_app_options: [],
     is_new: false,
   }),
   getters: {
@@ -148,6 +140,7 @@ export const useAgentFormStore = defineStore('agent-form-store', {
         enable: !!+this.agent_data.enable || false,
         custom_config: {
           agent_type: this.agent_type,
+          provider_id: 0,
           channel_id: 0,
           coze_workspace_id: '',
           coze_bot_id: '',
@@ -208,7 +201,6 @@ export const useAgentFormStore = defineStore('agent-form-store', {
       const model_List = (list || []).filter((item = {}) =>
         getModelChannelTypes().includes(item.channel_type)
       )
-
       const all_model_options = []
       this.model_options = model_List.reduce((acc, item) => {
         ;((item.value = item.channel_type),
@@ -238,113 +230,6 @@ export const useAgentFormStore = defineStore('agent-form-store', {
       )
         this.form_data.model = ''
     },
-
-    async loadCozeWorkspaceOptions() {
-      const list = await channelApi.cozeWorkspaceList()
-      this.coze_workspace_options = (list || []).map(item => {
-        item.value = item.id || 0
-        item.label = item.name || ''
-        item.icon = item.icon_url || ''
-        return item
-      })
-      if (this.coze_workspace_options.length && !this.form_data.custom_config.coze_workspace_id) {
-        this.form_data.custom_config.coze_workspace_id = this.coze_workspace_options[0].value
-      }
-      if (
-        !this.coze_workspace_options.find(
-          item => item.value === this.form_data.custom_config.coze_workspace_id
-        )
-      )
-        this.form_data.custom_config.coze_workspace_id = ''
-    },
-
-    async loadCozeBotOptions(workspace_id: string) {
-      if (!workspace_id) return
-
-      const list = await channelApi.cozeBotList({ params: { workspace_id } })
-      this.coze_bot_options = (list || []).map(item => {
-        item.value = item.bot_id || 0
-        item.label = item.bot_name || ''
-        item.icon = item.icon_url || ''
-        return item
-      })
-      if (this.coze_bot_options.length && !this.form_data.custom_config.coze_bot_id) {
-        const bot = this.coze_bot_options[0]
-        if (!this.agent_id) {
-          this.form_data.logo = bot.icon
-          this.form_data.name = bot.label
-          this.form_data.description = bot.description || ''
-        }
-        this.form_data.custom_config.coze_bot_id = bot.value
-      }
-      if (
-        !this.coze_bot_options.find(item => item.value === this.form_data.custom_config.coze_bot_id)
-      )
-        this.form_data.custom_config.coze_bot_id = ''
-    },
-
-    async loadAppBuilderBotOptions() {
-      const list = await channelApi.appBuilderBotList()
-      this.app_builder_bot_options = (list || []).map(item => {
-        item.value = item.id || 0
-        if (item.value) item.value = `bot-${item.value}`
-        item.label = item.name || ''
-        item.icon = item.icon || getAgentByAgentType(AGENT_TYPES.APP_BUILDER).icon
-        return item
-      })
-      if (this.app_builder_bot_options.length && !this.form_data.custom_config.app_builder_bot_id) {
-        const bot = this.app_builder_bot_options[0]
-        if (!this.agent_id) {
-          this.form_data.name = bot.label
-          this.form_data.description = bot.description || ''
-        }
-        this.form_data.custom_config.app_builder_bot_id = bot.value
-      }
-      if (
-        !this.app_builder_bot_options.find(
-          item => item.value === this.form_data.custom_config.app_builder_bot_id
-        )
-      )
-        this.form_data.custom_config.app_builder_bot_id = ''
-    },
-
-    async load53aiAppOptions() {
-      let list = []
-      if (this.agent_type === AGENT_TYPES['53AI_AGENT']) {
-        list = await channelApi.chat53aiAgentList()
-      } else {
-        list = await channelApi.chat53aiWorkflowList()
-      }
-
-      this.chat53ai_app_options = (list || []).map(item => {
-        item.value = item.bot_id || 0
-        item.label = item.name || ''
-        item.icon = item.logo
-        return item
-      })
-      if (this.chat53ai_app_options.length && !this.form_data.custom_config.chat53ai_agent_id) {
-        const agent = this.chat53ai_app_options[0]
-        if (!this.agent_id) {
-          this.form_data.logo = agent.logo
-          this.form_data.name = agent.name
-          this.form_data.description = agent.description || ''
-        }
-        this.form_data.custom_config.chat53ai_agent_id = agent.value
-        this.form_data.settings.opening_statement = agent.opening_statement
-        this.form_data.settings.suggested_questions = agent.suggested_questions.map(item => {
-          return {
-            id: Math.random().toString(36).substring(2, 15),
-            content: item,
-          }
-        })
-      }
-      if (
-        !this.chat53ai_app_options.find(
-          item => item.value === this.form_data.custom_config.chat53ai_agent_id
-        )
-      )
-        this.form_data.custom_config.chat53ai_agent_id = ''
-    },
     resetState() {
       this.saving = false
       this.loading = false
@@ -368,6 +253,7 @@ export const useAgentFormStore = defineStore('agent-form-store', {
         custom_config: {
           agent_type: 'prompt',
           agent_mode: 'chat',
+          provider_id: 0,
           channel_id: 0,
           coze_workspace_id: '',
           coze_bot_id: '',
@@ -397,9 +283,6 @@ export const useAgentFormStore = defineStore('agent-form-store', {
       this.agent_data = {}
       this.group_options = []
       this.model_options = []
-      this.coze_workspace_options = []
-      this.coze_bot_options = []
-      this.app_builder_bot_options = []
     },
 
     async saveAgentData({ hideToast = false } = {}) {

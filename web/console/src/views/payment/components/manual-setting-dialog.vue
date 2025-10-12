@@ -3,7 +3,8 @@ import { Plus } from '@element-plus/icons-vue'
 import { reactive, ref } from 'vue'
 import UploadImage from '@/components/Upload/image.vue'
 
-import { settingApi } from '@/api/modules/setting'
+import { paymentApi } from '@/api/modules/payment'
+import { prepareSavePaymentSettingData } from '@/api/modules/payment/transform'
 import { PAYMENT_TYPE } from '@/constants/payment'
 
 const emits = defineEmits(['success'])
@@ -19,7 +20,10 @@ const submitting = ref(false)
 
 const textValidator = ({ rule, value, callback, message } = {}) => {
   value = (value || '').trim()
-  if (!value) return callback(new Error(window.$t(message)))
+  if (!value) {
+    callback(new Error(window.$t(message)))
+    return
+  }
   callback()
 }
 
@@ -30,28 +34,31 @@ const open = ({ data = {} } = {}) => {
   origin_data.value = data
   visible.value = true
 }
-const close = () => {
-  visible.value = false
-  reset()
-}
 const reset = () => {
   form.pay_qrcode = ''
   form.pay_desc = ''
+}
+
+const close = () => {
+  visible.value = false
+  reset()
 }
 const handleConfirm = async () => {
   const valid = await form_ref.value.validate()
   if (!valid) return
   submitting.value = true
-  await settingApi
-    .savePaymentSetting({
-      pay_setting_id: origin_data.value.pay_setting_id,
-      pay_config: {},
-      extra_config: {
-        pay_qrcode: form.pay_qrcode,
-        pay_desc: form.pay_desc
-      },
-      pay_type: PAYMENT_TYPE.MANUAL
-    })
+  const { preparedData, pay_setting_id } = prepareSavePaymentSettingData({
+    pay_setting_id: origin_data.value.pay_setting_id,
+    pay_config: {},
+    extra_config: {
+      pay_qrcode: form.pay_qrcode,
+      pay_desc: form.pay_desc
+    },
+    pay_type: PAYMENT_TYPE.MANUAL
+  })
+  
+  await paymentApi
+    .savePaymentSetting({ pay_setting_id, ...preparedData })
     .finally(() => {
       submitting.value = false
     })
@@ -86,7 +93,7 @@ defineExpose({
         prop="pay_qrcode"
         :rules="[
           {
-            validator: (rule, value, callback) => textValidator({ rule, value, callback, message: 'payment.manual.qrcode_placeholder' }),
+            validator: (_rule, value, callback) => textValidator({ rule: _rule, value, callback, message: 'payment.manual.qrcode_placeholder' }),
             trigger: 'blur'
           }
         ]"

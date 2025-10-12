@@ -1,11 +1,11 @@
 export const textValidator = ({ rule, value, callback, message } = {}) => {
-  value = String(value) || ''.trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   callback()
 }
 
 export const linkValidator = ({ rule, value, callback, message } = {}) => {
-  value = (value || '').trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   if (
     !/^(https?:\/\/)?((([\w.-]+)(\.[\w.-]+)+)|((\d{1,3}\.){3}\d{1,3}))(:\d+)?([\/#\?].*)?$/.test(
@@ -17,7 +17,7 @@ export const linkValidator = ({ rule, value, callback, message } = {}) => {
 }
 
 export const accountValidator = ({ rule, value, callback, message } = {}) => {
-  value = String(value) || ''.trim()
+  value = String(value || '').trim()
   if (/[\s]/.test(value)) {
     return callback(new Error(window.$t('form_account_validator')))
   }
@@ -26,7 +26,7 @@ export const accountValidator = ({ rule, value, callback, message } = {}) => {
 }
 
 export const mobileValidator = ({ rule, value, callback, message } = {}) => {
-  value = (value || '').trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   if (!/^(\+86)?(13[0-9]|14[0-9]|15[0-9]|16[0-9]|17[0-9]|18[0-9]|19[0-9])\d{8}$/.test(value))
     return callback(new Error(window.$t('form_mobile_validator')))
@@ -34,7 +34,7 @@ export const mobileValidator = ({ rule, value, callback, message } = {}) => {
 }
 
 export const emailValidator = ({ rule, value, callback, message } = {}) => {
-  value = (value || '').trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value))
     return callback(new Error(window.$t('form_email_validator')))
@@ -42,7 +42,7 @@ export const emailValidator = ({ rule, value, callback, message } = {}) => {
 }
 
 export const mobileOrEmailValidator = ({ rule, value, callback, message } = {}) => {
-  value = (value || '').trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   if (
     !/^(13[0-9]|14[0-9]|15[0-9]|16[0-9]|17[0-9]|18[0-9]|19[0-9])\d{8}$/.test(value) &&
@@ -53,7 +53,7 @@ export const mobileOrEmailValidator = ({ rule, value, callback, message } = {}) 
 }
 
 export const passwordValidator = ({ rule, value, callback, message } = {}) => {
-  value = String(value) || ''.trim()
+  value = String(value || '').trim()
   if (/[\u4e00-\u9fa5]/.test(value) || /[\s]/.test(value))
     return callback(new Error(window.$t('form_password_validator')))
   if (!value) return callback(new Error(window.$t(message)))
@@ -61,20 +61,20 @@ export const passwordValidator = ({ rule, value, callback, message } = {}) => {
 }
 
 export const urlValidator = ({ rule, value, callback, message } = {}) => {
-  value = (value || '').trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   if (!/^(https?:\/\/)?([\w.-]+)(\.[\w.-]+)+([\/#\?].*)?$/.test(value))
     return callback(new Error(window.$t('form_url_validator')))
   callback()
 }
 export const pathValidator = ({ rule, value, callback, message } = {}) => {
-  value = (value || '').trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   if (!/^(\/[\w-]+)+$/.test(value)) return callback(new Error(window.$t('form_path_validator')))
   callback()
 }
 export const imageValidator = ({ rule, value, callback, message } = {}) => {
-  value = (value || '').trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   if (!/^https?:\/\/.+\.(jpg|jpeg|png|gif|bmp|webp)$/.test(value))
     return callback(new Error(window.$t('form_image_validator')))
@@ -82,7 +82,7 @@ export const imageValidator = ({ rule, value, callback, message } = {}) => {
 }
 
 export const variableValidator = ({ rule, value, callback, message } = {}) => {
-  value = (value || '').trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value))
     return callback(new Error(window.$t('form_variable_validator')))
@@ -90,7 +90,7 @@ export const variableValidator = ({ rule, value, callback, message } = {}) => {
 }
 
 export const portValidator = ({ rule, value, callback, message } = {}) => {
-  value = (value || '').trim()
+  value = String(value || '').trim()
   if (!value) return callback(new Error(window.$t(message)))
   if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 65535) {
     return callback(new Error(window.$t('form_port_validator')))
@@ -98,10 +98,20 @@ export const portValidator = ({ rule, value, callback, message } = {}) => {
   callback()
 }
 
+export const numberValidator = ({ rule, value, callback, message, min, max } = {}) => {
+  value = String(value).trim()
+  if (!value) return callback(new Error(window.$t(message)))
+  if (!/^\d+$/.test(value)) return callback(new Error(window.$t(message)))
+  if (Number(value) < min || Number(value) > max) return callback(new Error(window.$t(message)))
+  callback()
+}
+
 export const generateInputRules = ({
   message = 'form_input_placeholder',
   trigger = ['blur', 'change'],
   validator = ['text'],
+  min = 0,
+  max = 99999999,
 } = {}) => {
   const rules = []
   if (validator.includes('text'))
@@ -164,6 +174,12 @@ export const generateInputRules = ({
   if (validator.includes('variable'))
     rules.push({
       validator: (rule, value, callback) => variableValidator({ rule, value, callback, message }),
+      trigger,
+    })
+  if (validator.includes('number'))
+    rules.push({
+      validator: (rule, value, callback) =>
+        numberValidator({ rule, value, callback, message, min, max }),
       trigger,
     })
   return rules

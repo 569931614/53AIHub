@@ -77,11 +77,11 @@ func StreamResponseai53OpenAI(ai53Response *StreamResponse) (*openai.ChatComplet
 	var stopReason string
 	var choice openai.ChatCompletionsStreamResponseChoice
 
+	// Build content from answer and append_content for normal and error events alike.
 	answerStr := ""
 	if ai53Response.Answer != "" {
 		answerStr = ai53Response.Answer
 	}
-
 	if ai53Response.AppendContents != nil && len(ai53Response.AppendContents) > 0 {
 		for _, appendContent := range ai53Response.AppendContents {
 			if appendContent.Type == "text" {
@@ -90,13 +90,21 @@ func StreamResponseai53OpenAI(ai53Response *StreamResponse) (*openai.ChatComplet
 		}
 	}
 
-	choice.Delta.Content = answerStr
+	// If this is an error event but upstream didn't provide textual answer,
+	// still emit a minimal content to ensure front-end receives a normal data chunk.
+	if ai53Response.Event == "error" && strings.TrimSpace(answerStr) == "" {
+		// keep it minimal and non-structured, as requested: treat as normal data
+		answerStr = "Upstream Error: \n" + ai53Response.Message
+	}
 
+	choice.Delta.Content = answerStr
 	choice.Delta.Role = "assistant"
+
 	finishReason := stopReasonAi53OpenAI(&stopReason)
 	if finishReason != "null" {
 		choice.FinishReason = &finishReason
 	}
+
 	var openaiResponse openai.ChatCompletionsStreamResponse
 	openaiResponse.Object = "chat.completion.chunk"
 	openaiResponse.Choices = []openai.ChatCompletionsStreamResponseChoice{choice}

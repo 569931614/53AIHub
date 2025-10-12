@@ -16,5 +16,6 @@ declare namespace Navigation {
     created_time: number
     updated_time: number
     target: number
+    icon: string
   }
 }

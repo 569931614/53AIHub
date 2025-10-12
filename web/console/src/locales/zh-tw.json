@@ -647,6 +647,7 @@
     "auth_completed_tip": "確認您已完成應用綁定，確認後將刷新頁面"
   },
   "action_visit": "訪問",
+  "action_test": "測試",
   "action_add": "添加",
   "action_add_success": "已添加",
   "action_create": "創建",
@@ -654,6 +655,8 @@
   "action_save": "保存",
   "action_save_success": "已保存",
   "action_save_failed": "保存失敗",
+  "action_test_success": "可用",
+  "action_test_failed": "不可用",
   "action_delete": "刪除",
   "action_delete_tip": "刪除提示",
   "action_delete_confirm": "確定刪除該數據嗎？",
@@ -1134,5 +1137,10 @@
     "array_image": "陣列圖片",
     "array_audio": "陣列音頻",
     "array_video": "陣列視頻"
+  },
+  "platform": {
+    "model_tip": "{total}個{ type }模型",
+    "model_test_success": "測試成功，「{platform}」當前可正常使用",
+    "model_test_failed": "測試失敗，「{platform}」當前不可用"
   }
 }

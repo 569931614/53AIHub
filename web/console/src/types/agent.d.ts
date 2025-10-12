@@ -92,6 +92,7 @@ declare namespace Agent {
 		custom_config: {
 			agent_type: string
       agent_mode: string
+      provider_id: number
 			coze_workspace_id: string
 			coze_bot_id: string
       coze_bot_url: string

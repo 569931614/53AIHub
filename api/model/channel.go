@@ -31,6 +31,8 @@ const (
 	ChannelApiTypeMaxKB      = 1008
 	ChannelApiTypeN8n        = 1009
 	ChannelApiTypeCozeStudio = 1010
+	// 腾讯云
+	ChannelApiTypeTencent = 1011
 )
 
 // Model types for channels
@@ -71,6 +73,7 @@ var channelDescMap = map[string]string{
 	"yuanqi":           "腾讯元器",
 	"bailian":          "阿里百炼",
 	"volcengine":       "火山方舟",
+	"tencent":          "腾讯云",
 }
 
 // GetChannelDescription 通过key获取渠道描述
@@ -268,9 +271,29 @@ func GetApiType(channelType int) int {
 	return apiType
 }
 
-func GetFirstChannelByEidAndProviderType(eid int64, providerType int64) (*Channel, error) {
+func GetFirstChannelByEidAndProviderType(eid int64, providerType int64, providerID int64) (*Channel, error) {
 	var channel Channel
-	err := DB.Where("eid = ? AND type = ?", eid, providerType).First(&channel).Error
+	err := DB.Where("eid = ? AND type = ? AND provider_id = ?", eid, providerType, providerID).First(&channel).Error
+	if err != nil {
+		return nil, err
+	}
+	return &channel, nil
+}
+
+// GetFirstAvailableChannelByEidAndProviderType gets the first available channel by enterprise ID and provider type
+// This function prioritizes channels with provider_id > 0 (associated with specific providers)
+// Falls back to provider_id = 0 (platform channels) for backward compatibility
+func GetFirstAvailableChannelByEidAndProviderType(eid int64, providerType int64) (*Channel, error) {
+	var channel Channel
+
+	// First try to get channel with provider_id > 0 (specific provider)
+	err := DB.Where("eid = ? AND type = ? AND provider_id > 0", eid, providerType).First(&channel).Error
+	if err == nil {
+		return &channel, nil
+	}
+
+	// Fallback to any channel of this type (backward compatibility)
+	err = DB.Where("eid = ? AND type = ?", eid, providerType).First(&channel).Error
 	if err != nil {
 		return nil, err
 	}

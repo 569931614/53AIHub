@@ -14,8 +14,8 @@ func SetApiRouter(router *gin.Engine) {
 
 	enterpriseRoute := apiRouter.Group("/enterprises")
 	{
-		enterpriseRoute.GET("/is_saas", middleware.UserTokenAuth(model.RoleAdminUser), controller.GetIsSaas)
-		enterpriseRoute.GET("/homepage", middleware.UserTokenAuth(model.RoleAdminUser), controller.GetHomePage)
+		enterpriseRoute.GET("/is_saas", middleware.UserTokenAuth(model.RoleCommonUser), controller.GetIsSaas)
+		enterpriseRoute.GET("/homepage", middleware.UserTokenAuth(model.RoleCommonUser), controller.GetHomePage)
 
 		enterpriseRoute.GET("/current", controller.GetCurrentEnterprise)
 
@@ -294,6 +294,7 @@ func SetApiRouter(router *gin.Engine) {
 
 	navigationRoute := apiRouter.Group("/navigations")
 	navigationRoute.GET("", controller.GetNavigations)
+	navigationRoute.GET("/icons", controller.GetNavigationIcons)
 	navigationRoute.POST("/init", controller.InitSystemNavigation)
 	navigationRoute.Use(middleware.UserTokenAuth(model.RoleAdminUser))
 	{

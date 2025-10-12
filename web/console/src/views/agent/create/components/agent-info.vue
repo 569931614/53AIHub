@@ -38,7 +38,11 @@
   <ElFormItem :label="$t('avatar')" prop="logo" :rules="generateInputRules({ message: 'form_upload_placeholder' })">
     <UploadImage v-model="store.form_data.logo" class="w-12 h-12" />
   </ElFormItem>
-  <ElFormItem :label="$t('action_sort')" prop="sort" :rules="generateInputRules({ message: 'form_input_placeholder' })">
+  <ElFormItem
+    :label="$t('action_sort')"
+    prop="sort"
+    :rules="generateInputRules({ message: 'form_input_placeholder', validator: ['number'], min: 0, max: 99999999 })"
+  >
     <ElInputNumber
       v-model="store.form_data.sort"
       class="!w-[300px] el-input-number--left"

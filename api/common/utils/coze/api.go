@@ -195,6 +195,10 @@ func (c *CozeApi) GetWorkspaces(provider *model.Provider, pageNum int, pageSize 
 	query := fmt.Sprintf("?page_num=%d&page_size=%d", pageNum, pageSize)
 	url = url + query
 
+	// Log request details
+	fmt.Printf("GetWorkspaces: Provider ID %d, URL: %s\n", provider.ProviderID, url)
+	fmt.Printf("GetWorkspaces: AccessToken: %s...\n", provider.AccessToken[:min(len(provider.AccessToken), 20)])
+
 	headers := map[string]string{
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + provider.AccessToken,
@@ -202,8 +206,11 @@ func (c *CozeApi) GetWorkspaces(provider *model.Provider, pageNum int, pageSize 
 
 	resp, err := c.doRequest("GET", url, nil, headers)
 	if err != nil {
+		fmt.Printf("GetWorkspaces: Request failed for provider %d: %v\n", provider.ProviderID, err)
 		return nil, err
 	}
+
+	fmt.Printf("GetWorkspaces: Raw response for provider %d: %s\n", provider.ProviderID, string(resp))
 
 	var result struct {
 		Data WorkspacesResponse `json:"data"`
@@ -218,6 +225,7 @@ func (c *CozeApi) GetWorkspaces(provider *model.Provider, pageNum int, pageSize 
 		return nil, fmt.Errorf("request failed with code %d: %s", result.Code, result.Msg)
 	}
 
+	fmt.Printf("GetWorkspaces: Found %d workspaces for provider %d\n", len(result.Data.Workspaces), provider.ProviderID)
 	return &result.Data, nil
 }
 

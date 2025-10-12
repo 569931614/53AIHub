@@ -51,7 +51,7 @@ func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusC
 		}
 
 		// n8n 可能不支持标准的 SSE 格式，这里预留处理逻辑
-		logger.SysLogf("n8n stream data: %s", data)
+		// logger.SysLogf("n8n stream data: %s", data)
 
 		// 如果 n8n 支持流式响应，在这里处理
 		// 目前 n8n webhook 通常返回完整响应，不是流式的

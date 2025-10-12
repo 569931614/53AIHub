@@ -1,7 +1,7 @@
 <template>
   <ElDialog
     v-model="visible"
-    :title="$t('action_authorize') + $t(origin_data.label || '')"
+    :title="$t('action_authorize') + $t(originData.label || '')"
     :close-on-click-modal="false"
     width="720px"
     destroy-on-close
@@ -14,7 +14,7 @@
         <div class="whitespace-pre-wrap leading-7" v-html="guideHtml" />
         <ElIcon
           v-if="isCozeCN"
-          ref="copy_ref"
+          ref="copyRef"
           class="cursor-pointer ml-1 mt-1 text-[#4F5052] hover:text-[#3664EF]"
           :size="14"
           @click="handleCopy(coze_auth_url)"
@@ -22,10 +22,17 @@
           <CopyDocument />
         </ElIcon>
       </div>
-
+      <el-form-item prop="name" :label="$t('module.website_info_name')">
+        <ElInput v-model="form.name" size="large" :placeholder="$t('module.website_info_name_placeholder')" />
+      </el-form-item>
       <template v-for="option in schemaOptions" :key="option.prop">
         <ElFormItem :label="option.label" :prop="option.prop">
-          <ElInput v-model="form[option.prop]" size="large" :placeholder="option.placeholder" />
+          <ElInput
+            :model-value="getFormValue(option.prop)"
+            size="large"
+            :placeholder="option.placeholder"
+            @update:model-value="setFormValue(option.prop, $event)"
+          />
         </ElFormItem>
       </template>
     </ElForm>
@@ -35,7 +42,7 @@
         {{ $t('platform_auth.coze_cn.tip_1') }}
       </div>
       <div class="py-4 flex items-center justify-center">
-        <ElButton class="w-[96px] h-[36px]" type="primary" :loading="saving" @click="handleConfirm">
+        <ElButton v-debounce class="w-[96px] h-[36px]" type="primary" @click="handleConfirm">
           {{ $t('action_confirm') }}
         </ElButton>
         <ElButton class="w-[96px] h-[36px] text-[#1D1E1F]" type="info" plain @click.stop="close">
@@ -54,44 +61,29 @@ import { ElIcon } from 'element-plus'
 import { useEnterpriseStore } from '@/stores'
 import { copyToClip } from '@/utils/copy'
 import { api_host } from '@/utils/config'
+import { generateFormRules } from '@/utils/form-rule.v2'
+
 import { PROVIDER_VALUE } from '@/constants/platform/provider'
-import { providerApi } from '@/api'
 import type { ProviderValueType } from '@/constants/platform/provider'
 
+import providersApi from '@/api/modules/providers'
+import type { ProviderCreateRequest } from '@/api/modules/providers/types'
+
 // 类型定义
-interface AuthForm {
-  client_id: string
-  client_secret: string
-  api_key: string
-  base_url: string
-  access_token: string
-  [key: string]: string
+interface AuthForm extends Omit<ProviderCreateRequest, 'configs'> {
+  configs: Record<string, string>
 }
 
 interface ProviderData {
-  label?: string
+  name?: string
   provider_type?: ProviderValueType
-  provider_id?: string
-  client_id?: string
-  client_secret?: string
+  provider_id?: number
+  configs?: Record<string, string>
   base_url?: string
   is_authorized?: number
   access_token?: string
-}
-
-interface SaveData {
-  configs: Record<string, any>
-  name?: string
-  provider_type: ProviderValueType
-  provider_id?: string
-  base_url?: string
-  access_token?: string
-}
-
-interface FieldConfig {
-  label: string
-  prop: string
-  placeholder: string
+  label?: string
+  id?: number
 }
 
 interface PlatformConfig {
@@ -100,11 +92,14 @@ interface PlatformConfig {
     url: string
     needRedirectUrl?: boolean
   }
-  fields: FieldConfig[]
-  transformData: (form: AuthForm) => Partial<SaveData>
+  fields: {
+    label: string
+    prop: string
+    placeholder: string
+  }[]
   setFormData?: (form: AuthForm) => void
-  needsConfirmation?: (form: AuthForm, origin: ProviderData) => boolean
-  getAuthUrl?: (form: AuthForm, redirectUrl: string) => string
+  needsConfirmation?: boolean
+  getAuthUrl?: (form: AuthForm, redirectUrl: string, provider_id: number) => string
 }
 
 // 事件定义
@@ -113,25 +108,18 @@ const emits = defineEmits<{
 }>()
 
 // 状态管理
-const enterprise_store = useEnterpriseStore()
-const copy_ref = shallowRef<InstanceType<typeof ElIcon> | null>(null)
-const formRef = shallowRef<FormInstance | null>(null)
+const enterpriseStore = useEnterpriseStore()
+const copyRef = shallowRef<InstanceType<typeof ElIcon> | null>(null)
+const formRef = shallowRef<FormInstance>()
 const visible = ref(false)
 const form = reactive<AuthForm>({
-  client_id: '',
-  client_secret: '',
-  api_key: '',
+  name: '',
+  configs: {},
   base_url: '',
   access_token: '',
+  provider_type: 0,
 })
-const origin_data = ref<ProviderData>({})
-const saving = ref(false)
-
-// 计算属性
-const coze_auth_url = computed(() => {
-  const enterprise_info = enterprise_store.info
-  return `${api_host}/api/callback/cozecn/auth/${enterprise_info.eid}`
-})
+const originData = ref<ProviderData>({})
 
 // 平台配置
 const PLATFORM_CONFIGS: Record<ProviderValueType, PlatformConfig> = {
@@ -140,12 +128,11 @@ const PLATFORM_CONFIGS: Record<ProviderValueType, PlatformConfig> = {
     tip: { url: 'https://qianfan.cloud.baidu.com/appbuilder' },
     fields: [
       {
-        label: 'module.platform_tool_api_key',
-        prop: 'api_key',
-        placeholder: 'module.platform_tool_api_key_placeholder',
+        label: window.$t('module.platform_tool_api_key'),
+        prop: 'access_token',
+        placeholder: window.$t('module.platform_tool_api_key_placeholder'),
       },
     ],
-    transformData: (form: AuthForm) => ({ access_token: form.api_key }),
   },
   [PROVIDER_VALUE.COZE_CN]: {
     i18n_key: 'platform_auth.coze_cn.tip',
@@ -155,82 +142,74 @@ const PLATFORM_CONFIGS: Record<ProviderValueType, PlatformConfig> = {
     },
     fields: [
       {
-        label: 'module.platform_auth_client_id',
-        prop: 'client_id',
-        placeholder: 'module.platform_auth_client_id_placeholder',
+        label: window.$t('module.platform_auth_client_id'),
+        prop: 'configs.client_id',
+        placeholder: window.$t('module.platform_auth_client_id_placeholder'),
       },
       {
-        label: 'module.platform_auth_client_secret',
-        prop: 'client_secret',
-        placeholder: 'module.platform_auth_client_secret_placeholder',
+        label: window.$t('module.platform_auth_client_secret'),
+        prop: 'configs.client_secret',
+        placeholder: window.$t('module.platform_auth_client_secret_placeholder'),
       },
     ],
-    transformData: (form: AuthForm) => ({
-      configs: { client_id: form.client_id, client_secret: form.client_secret },
-    }),
-    needsConfirmation: (form: AuthForm, origin: ProviderData) =>
-      !origin.provider_id || form.client_id !== origin.client_id || form.client_secret !== origin.client_secret,
-    getAuthUrl: (form: AuthForm, redirectUrl: string) =>
-      `https://www.coze.cn/api/permission/oauth2/authorize?response_type=code&client_id=${form.client_id}&redirect_uri=${encodeURIComponent(redirectUrl)}&state=coze_auth`,
+    needsConfirmation: true,
+    setFormData: (form: AuthForm) => {
+      form.access_token = ''
+    },
+    getAuthUrl: (form: AuthForm, redirectUrl: string, provider_id: number) =>
+      `https://www.coze.cn/api/permission/oauth2/authorize?response_type=code&client_id=${form.configs.client_id}&redirect_uri=${encodeURIComponent(redirectUrl)}&state=${encodeURIComponent(`provider_id=${provider_id.toString()}`)}`,
   },
   [PROVIDER_VALUE.COZE_OSV]: {
     i18n_key: 'platform_auth.coze_osv.tip',
     tip: { url: 'https://www.53ai.com/' },
     fields: [
       {
-        label: 'module.platform_tool_api_endpoint',
+        label: window.$t('module.platform_tool_api_endpoint'),
         prop: 'base_url',
-        placeholder: 'module.platform_model_base_url_placeholder',
+        placeholder: window.$t('module.platform_model_base_url_placeholder'),
       },
       {
-        label: 'module.platform_tool_token',
+        label: window.$t('module.platform_tool_token'),
         prop: 'access_token',
-        placeholder: 'module.platform_tool_token_placeholder',
+        placeholder: window.$t('module.platform_tool_token_placeholder'),
       },
     ],
-    setFormData: (form: AuthForm) => {
-      form.base_url = form.base_url.trim() || ''
-      form.access_token = form.access_token.trim()
-    },
-    transformData: (form: AuthForm) => ({
-      base_url: form.base_url,
-      access_token: form.access_token,
-    }),
   },
   [PROVIDER_VALUE['53AI']]: {
     i18n_key: 'platform_auth.53ai.tip',
     tip: { url: 'https://www.53ai.com/' },
     fields: [
       {
-        label: 'module.platform_auth_url',
+        label: window.$t('module.platform_auth_url'),
         prop: 'base_url',
-        placeholder: 'module.platform_model_base_url_placeholder_53ai',
+        placeholder: window.$t('module.platform_model_base_url_placeholder_53ai'),
       },
       {
-        label: 'module.platform_auth_secret',
+        label: window.$t('module.platform_auth_secret'),
         prop: 'access_token',
-        placeholder: 'module.platform_tool_api_key_placeholder',
+        placeholder: window.$t('module.platform_tool_api_key_placeholder'),
       },
     ],
     setFormData: (form: AuthForm) => {
       form.base_url = form.base_url.trim() || 'https://api.53ai.com'
       form.access_token = form.access_token.trim()
     },
-    transformData: (form: AuthForm) => ({
-      base_url: form.base_url,
-      access_token: form.access_token,
-    }),
   },
 }
 
+// 计算属性
 const currentConfig = computed(() => {
-  const provider_type = origin_data.value.provider_type
+  const provider_type = originData.value.provider_type
   return typeof provider_type === 'number' ? PLATFORM_CONFIGS[provider_type] : null
 })
 
-const isCozeCN = computed(() => origin_data.value.id === PROVIDER_VALUE.COZE_CN)
+const isCozeCN = computed(() => originData.value.provider_type === PROVIDER_VALUE.COZE_CN)
 
-// 计算属性
+const coze_auth_url = computed(() => {
+  const enterprise_info = enterpriseStore.info
+  return `${api_host}/api/callback/cozecn/auth/${enterprise_info.eid}`
+})
+
 const guideHtml = computed(() => {
   const config = currentConfig.value
   if (!config) return ''
@@ -248,72 +227,73 @@ const guideHtml = computed(() => {
   return window.$t(config.i18n_key, tipParams)
 })
 
-const schemaOptions = computed(() => {
-  const config = currentConfig.value
-  return (
-    config?.fields.map(field => ({
-      label: window.$t(field.label),
-      prop: field.prop,
-      placeholder: window.$t(field.placeholder),
-    })) || []
-  )
-})
+const schemaOptions = computed(() => currentConfig.value?.fields || [])
 
-// 表单验证规则
 const formRules = computed(() => {
-  const rules: FormRules = {}
-  const config = currentConfig.value
-  if (config) {
-    config.fields.forEach(field => {
-      rules[field.prop] = [
-        {
-          validator: (_, value: string, callback: (error?: Error) => void) => {
-            if (!(value || '').trim()) {
-              callback(new Error(window.$t(field.placeholder)))
-            } else {
-              callback()
-            }
-          },
-          trigger: 'blur',
-        },
-      ]
-    })
+  const rules: FormRules = {
+    name: generateFormRules({ validator: ['required'] }),
   }
+
+  currentConfig.value?.fields.forEach(field => {
+    rules[field.prop] = generateFormRules({ validator: ['required'], message: field.placeholder })
+  })
+
   return rules
 })
 
+// 表单值处理 - 简化逻辑
+const getFormValue = (prop: string) => {
+  const isConfigProp = prop.startsWith('configs.')
+  const key = isConfigProp ? prop.replace('configs.', '') : prop
+  return isConfigProp ? form.configs[key] || '' : (form as any)[key] || ''
+}
+
+const setFormValue = (prop: string, value: string) => {
+  const isConfigProp = prop.startsWith('configs.')
+  const key = isConfigProp ? prop.replace('configs.', '') : prop
+
+  if (isConfigProp) {
+    form.configs[key] = value
+  } else {
+    ;(form as any)[key] = value
+  }
+}
+
 // 方法
 const reset = () => {
-  Object.keys(form).forEach(key => {
-    form[key] = ''
+  Object.assign(form, {
+    name: '',
+    configs: {},
+    base_url: '',
+    access_token: '',
+    provider_type: 0,
   })
 }
 
 const open = async ({ data = {} as ProviderData } = {}) => {
-  // 重置表单数据
   reset()
+  originData.value = data
+
   // 填充表单数据
   Object.assign(form, {
-    client_id: data.client_id || '',
-    client_secret: data.client_secret || '',
-    api_key: data.access_token || '',
+    name: data.name || '',
+    provider_type: data.provider_type || 0,
     base_url: data.base_url || '',
     access_token: data.access_token || '',
   })
+  Object.assign(form.configs, data.configs || {})
 
   // 应用平台特定的表单数据处理
-  const config = currentConfig.value
-  config?.setFormData?.(form)
+  currentConfig.value?.setFormData?.(form)
 
-  origin_data.value = data
   visible.value = true
 
   // 处理 Coze CN 的复制功能
   if (isCozeCN.value) {
     await nextTick()
     const copy_hook_el = formRef.value?.$el.querySelector('.copy-hook')
-    if (copy_ref.value?.$el && copy_hook_el) {
-      copy_hook_el.appendChild(copy_ref.value.$el)
+    if (copyRef.value?.$el && copy_hook_el) {
+      copy_hook_el.appendChild(copyRef.value.$el)
     }
   }
 }
@@ -342,45 +322,43 @@ const handleAuthorization = async (auth_url: string, provider_type: ProviderValu
 }
 
 const handleConfirm = async () => {
-  if (!formRef.value) return
-
-  const valid = await formRef.value.validate()
+  const valid = await formRef.value?.validate()
   if (!valid) return
 
   const config = currentConfig.value
   if (!config) return
 
-  const data: SaveData = {
-    configs: {},
-    name: origin_data.value.label,
-    provider_type: origin_data.value.provider_type as ProviderValueType,
-    provider_id: origin_data.value.provider_id,
-    ...config.transformData(form),
+  const data: ProviderCreateRequest = {
+    name: form.name,
+    provider_type: form.provider_type,
+    configs: JSON.stringify(form.configs),
+    base_url: form.base_url,
+    access_token: form.access_token,
   }
 
   // 检查是否需要确认
-  if (config.needsConfirmation?.(form, origin_data.value)) {
+  if (config.needsConfirmation) {
     await ElMessageBox.confirm(window.$t('module.platform_auth_coze_confirm'), window.$t('tip'))
   }
-
-  try {
-    saving.value = true
-    await providerApi.save({ data })
-    // 处理授权流程
-    if (config.getAuthUrl) {
-      const auth_url = config.getAuthUrl(form, coze_auth_url.value)
-      await handleAuthorization(auth_url, origin_data.value.provider_type as ProviderValueType)
-    }
-
-    ElMessage.success(window.$t('action_save_success'))
-    emits('success')
-    close()
-  } catch (error) {
-    console.error('Save failed:', error)
-    ElMessage.error(window.$t('action_save_failed'))
-  } finally {
-    saving.value = false
+  let provider_id = originData.value.provider_id
+  // 保存数据
+  if (provider_id) {
+    await providersApi.update(provider_id, data)
+  } else {
+    const result = await providersApi.create(data)
+    provider_id = result.provider_id
   }
+
+  // 处理授权流程
+  if (config.getAuthUrl) {
+    const auth_url = config.getAuthUrl(form, coze_auth_url.value, provider_id)
+    console.log(auth_url)
+    await handleAuthorization(auth_url, originData.value.provider_type as ProviderValueType)
+  }
+
+  ElMessage.success(window.$t('action_save_success'))
+  emits('success')
+  close()
 }
 
 // 暴露方法

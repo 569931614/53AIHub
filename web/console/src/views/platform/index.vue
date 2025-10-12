@@ -8,12 +8,12 @@
         <h2 class="font-semibold text-[#1D1E1F] mb-6">
           {{ $t(group.label) }}
         </h2>
-        <ul v-loading="providerLoading" class="flex flex-wrap gap-4 mb-8">
+        <ul class="flex flex-wrap gap-4 mb-8">
           <ProviderCard
             v-for="provider in group.children"
             :key="provider.id"
             :provider="provider"
-            :all-total="allTotal"
+            :all-total="providerTotal"
             @authorize="handleProviderAuthorize"
             @add="handleAgentAdd"
             @delete="handleProviderDelete"
@@ -46,36 +46,35 @@
 
   <ModelSaveDialog ref="modelSaveRef" @success="loadModelList" />
   <ModelSelectDialog ref="modelSelectRef" :list="channelList" @add="handleModelAdd" />
-  <ProviderAuthorizeDialog ref="authorizeRef" @success="loadProviderList" />
   <ModelSettingDialog ref="modelSettingRef" @success="loadModelList" />
+
+  <AuthListDrawer ref="authListDrawerRef" @change="loadProviderList" />
   <AgentListDrawer ref="agentListDrawerRef" @change="onAgentListChange" />
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+
+import AuthListDrawer from './components/auth-list-drawer.vue'
 import AgentListDrawer from './components/agent-list-drawer.vue'
 
 import ModelSaveDialog from './components/model-save-dialog.vue'
 import ModelSelectDialog from './components/model-select-dialog.vue'
 import ModelSettingDialog from './components/model-setting-dialog.vue'
 
-import ProviderAuthorizeDialog from './components/provider-authorize-dialog.vue'
 import ProviderCard from './components/provider-card.vue'
 import ModelGroup from './components/model-group.vue'
 
-import { PROVIDER_VALUE } from '@/constants/platform/provider'
 import type { ModelConfig, ProviderConfig } from '@/constants/platform/config'
 import { getModelByChannelType, getModelChannelTypes, getProvidersByAuth } from '@/constants/platform/config'
-import { isInternalNetwork } from '@/utils'
 import { agentApi, channelApi, providerApi } from '@/api'
+import providersApi from '@/api/modules/providers/index'
+import { PROVIDER_VALUE } from '@/constants/platform/provider'
+import { isInternalNetwork } from '@/utils'
 import TipConfirm from '@/components/TipConfirm/setup'
 
 // 类型定义
 interface ProviderOption extends ProviderConfig {
-  connected: boolean
-  authed_time: string
-  client_id: string
-  client_secret: string
   agentTotal: number
   channelLoading: boolean
   provider_id?: number
@@ -98,10 +97,6 @@ interface ProviderGroup {
 // 工具函数
 const createProviderOption = (item: ProviderConfig): ProviderOption => ({
   ...item,
-  connected: false,
-  authed_time: '',
-  client_id: '',
-  client_secret: '',
   agentTotal: 0,
   channelLoading: !item.auth,
 })
@@ -110,16 +105,15 @@ const createProviderOption = (item: ProviderConfig): ProviderOption => ({
 const authProviders = ref<ProviderOption[]>(getProvidersByAuth(true).map(createProviderOption))
 const agentProviders = ref<ProviderOption[]>(getProvidersByAuth(false).map(createProviderOption))
 const channelList = ref<ChannelGroup[]>([])
-const allTotal = ref(0)
-const providerLoading = ref(false)
+const providerTotal = ref(0)
 const channelLoading = ref(false)
 
 // 组件引用
-const authorizeRef = ref()
 const modelSaveRef = ref()
 const modelSelectRef = ref()
 const modelSettingRef = ref()
 const agentListDrawerRef = ref()
+const authListDrawerRef = ref()
 
 // 计算属性
 const providerGroupList = computed<ProviderGroup[]>(() => {
@@ -137,32 +131,19 @@ const providerGroupList = computed<ProviderGroup[]>(() => {
 
 // API 调用函数
 const loadProviderList = async () => {
-  providerLoading.value = true
-  try {
-    const list = await providerApi.list()
-    authProviders.value = authProviders.value.map(item => {
-      const providerData = list.find((row: any) => item.id === row.provider_type)
-
-      return providerData
-        ? {
-            ...item,
-            ...providerData,
-            connected: true,
-            client_id: providerData.configs?.client_id || '',
-            client_secret: providerData.configs?.client_secret || '',
-          }
-        : item
-    })
-  } finally {
-    providerLoading.value = false
-  }
+  const list = await providerApi.list()
+  authProviders.value = authProviders.value.map(item => {
+    const providerData = list.filter((row: any) => item.id === row.provider_type)
+    item.agentTotal = providerData.length
+    return item
+  })
 }
 
 const loadAllTotal = async () => {
   const { count = 0 } = await agentApi.list({
     params: { group_id: '-1', keyword: '', offset: 0, limit: 1 },
   })
-  allTotal.value = count
+  providerTotal.value = count
 }
 
 const loadAgentListCount = async () => {
@@ -217,7 +198,7 @@ const handleProviderAuthorize = ({ data }: { data: ProviderOption }): void => {
     return
   }
   if (data.auth) {
-    authorizeRef.value.open({ data })
+    authListDrawerRef.value.open({ data })
   } else {
     agentListDrawerRef.value.open({ data, type: data.id })
   }
@@ -231,7 +212,7 @@ const handleProviderDelete = async ({ data }: { data: ProviderOption }) => {
   if (!data.provider_id) return
 
   await ElMessageBox.confirm(window.$t('module.platform_delete_confirm'))
-  await providerApi.delete({ data: { provider_id: data.provider_id } })
+  await providersApi.delete(data.provider_id)
   ElMessage.success(window.$t('action_delete_success'))
   setTimeout(() => {
     authProviders.value = getProvidersByAuth(true).map(createProviderOption)
@@ -287,10 +268,8 @@ const onAgentListChange = ({ data, count }: { data: ProviderOption; count: numbe
 // 初始化
 const refresh = () => {
   loadModelList()
-  // #ifndef KM
   loadProviderList()
   loadAgentListCount()
-  // #endif
 }
 
 onMounted(() => refresh())
