@@ -7,26 +7,29 @@ import (
 )
 
 type Agent struct {
-	AgentID           int64   `json:"agent_id" gorm:"primaryKey;autoIncrement"`
-	Eid               int64   `json:"eid" gorm:"not null;index"`
-	Name              string  `json:"name" gorm:"not null"`
-	Logo              string  `json:"logo" gorm:"not null"`
-	Sort              int     `json:"sort" gorm:"default:0"`
-	Description       string  `json:"description" gorm:"not null"`
-	ChannelType       int     `json:"channel_type" gorm:"default:0"`
-	Model             string  `json:"model" gorm:"not null"`
-	Prompt            string  `json:"prompt" gorm:"not null"`
-	Configs           string  `json:"configs" gorm:"not null;type:text"`
-	Tools             string  `json:"tools" gorm:"not null;type:text"`
-	GroupID           int64   `json:"group_id" gorm:"type:int;default:0;not null"`
-	UseCases          string  `json:"use_cases" gorm:"not null;type:text"`
-	CreatedBy         int64   `json:"created_by" gorm:"not null"`
-	CustomConfig      string  `json:"custom_config" gorm:"not null;type:text"`
-	Settings          string  `json:"settings" gorm:"not null;type:text"`
-	UserGroupIds      []int64 `json:"user_group_ids" gorm:"-"`
-	Enable            bool    `json:"enable" gorm:"default:false;comment:enable status"`
-	ConversationCount int64   `json:"conversation_count" gorm:"-"`
-	AgentType         int     `json:"agent_type" gorm:"default:0"`
+	AgentID      int64  `json:"agent_id" gorm:"primaryKey;autoIncrement"`
+	Eid          int64  `json:"eid" gorm:"not null;index"`
+	Name         string `json:"name" gorm:"not null"`
+	Logo         string `json:"logo" gorm:"not null"`
+	Sort         int    `json:"sort" gorm:"default:0"`
+	Description  string `json:"description" gorm:"not null"`
+	ChannelType  int    `json:"channel_type" gorm:"default:0"`
+	Model        string `json:"model" gorm:"not null"`
+	Prompt       string `json:"prompt" gorm:"not null"`
+	Configs      string `json:"configs" gorm:"not null;type:text"`
+	Tools        string `json:"tools" gorm:"not null;type:text"`
+	GroupID      int64  `json:"group_id" gorm:"type:int;default:0;not null"`
+	UseCases     string `json:"use_cases" gorm:"not null;type:text"`
+	CreatedBy    int64  `json:"created_by" gorm:"not null"`
+	CustomConfig string `json:"custom_config" gorm:"not null;type:text"`
+	Settings     string `json:"settings" gorm:"not null;type:text"`
+	// UserGroupIds 表示内部用户组ID集合
+	UserGroupIds []int64 `json:"user_group_ids" gorm:"-"`
+	// SubscriptionGroupIds 表示注册用户订阅分组ID集合
+	SubscriptionGroupIds []int64 `json:"subscription_group_ids" gorm:"-"`
+	Enable               bool    `json:"enable" gorm:"default:false;comment:enable status"`
+	ConversationCount    int64   `json:"conversation_count" gorm:"-"`
+	AgentType            int     `json:"agent_type" gorm:"default:0"`
 	BaseModel
 }
 
@@ -199,4 +202,44 @@ func (a *Agent) GetProviderID() int64 {
 	}
 
 	return 0
+}
+
+// LoadGroupIdsByType loads both subscription and internal user group IDs for the agent
+func (a *Agent) LoadGroupIdsByType() error {
+	// Query resource permissions joined with groups to get group types
+	type row struct {
+		GroupID   int64
+		GroupType int64
+	}
+	var rows []row
+	if err := DB.Table("resource_permissions").
+		Select("resource_permissions.group_id as group_id, groups.group_type as group_type").
+		Joins("JOIN groups ON groups.group_id = resource_permissions.group_id").
+		Where("resource_permissions.resource_id = ? AND resource_permissions.resource_type = ?", a.AgentID, ResourceTypeAgent).
+		Find(&rows).Error; err != nil {
+		return err
+	}
+
+	// initialize as empty slices (not nil) so JSON encodes [] instead of null when empty
+	subIDs := make([]int64, 0)
+	userIDs := make([]int64, 0)
+	seenSub := make(map[int64]bool)
+	seenUser := make(map[int64]bool)
+	for _, r := range rows {
+		if r.GroupType == USER_GROUP_TYPE { // 订阅分组
+			if !seenSub[r.GroupID] {
+				seenSub[r.GroupID] = true
+				subIDs = append(subIDs, r.GroupID)
+			}
+		} else if r.GroupType == INTERNAL_USER_GROUP_TYPE { // 内部用户组
+			if !seenUser[r.GroupID] {
+				seenUser[r.GroupID] = true
+				userIDs = append(userIDs, r.GroupID)
+			}
+		}
+	}
+	// Assign back (empty slices when none found)
+	a.SubscriptionGroupIds = subIDs
+	a.UserGroupIds = userIDs
+	return nil
 }

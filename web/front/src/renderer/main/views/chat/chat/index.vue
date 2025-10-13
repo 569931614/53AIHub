@@ -582,13 +582,47 @@ const loadList = async () => {
   }
 }
 
+const buildHistoryMessages = (maxPairs: number = 6) => {
+  const history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  // 仅使用已完成的历史（包含 answer 的）
+  const finished = state.messageList.filter((m) => m.query && (m.answer !== undefined))
+  const start = Math.max(0, finished.length - maxPairs)
+  for (let i = start; i < finished.length; i++) {
+    const m = finished[i]
+    const hasFiles = Array.isArray(m.user_files) && m.user_files.length > 0
+    const userContent = hasFiles
+      ? JSON.stringify([{ type: 'text', content: m.query }, ...m.user_files])
+      : m.query
+    history.push({ role: 'user', content: userContent })
+    if (m.answer) history.push({ role: 'assistant', content: m.answer })
+  }
+  return history
+}
+
+const getHistoryPairs = (): number => {
+  try {
+    // Only prompt type carries context
+    if (custom_config_obj.value?.agent_type !== 'prompt') return 0
+    const configs = JSON.parse(currentAgent.value.configs || '{}')
+    const chat = configs.chat || {}
+    const completion_params = configs.completion_params || {}
+    const v = Number(chat.history_pairs ?? completion_params.history_pairs)
+    if (Number.isFinite(v) && v > 0) return Math.floor(v)
+  } catch (e) {}
+  return 6
+}
+
+
 const sendMessage = async (query: string, user_files: any[]) => {
   if (state.isStreaming) return
 
   const { agent_id } = currentAgent.value
   const { conversation_id } = currentConv.value
 
-  // 创建新消息
+  // 先构建历史对话，避免把当前占位消息带入请求
+  const history = buildHistoryMessages(getHistoryPairs())
+
+  // 创建新消息（用于界面展示与流式追加）
   const newMessage = messageUtils.createNewMessage(query, agent_id, conversation_id, user_files)
   state.messageList.push(newMessage)
 
@@ -598,30 +632,17 @@ const sendMessage = async (query: string, user_files: any[]) => {
   abortController.value = new AbortController()
   let processedLength = 0
 
-  // Build multi-turn message history
-  const toUserContent = (q: string, files: any[]) => {
-    if (files && files.length > 0) {
-      return JSON.stringify([{ type: 'text', content: q }, ...files])
-    }
-    return q
+  let content = query
+  if (user_files.length > 0) {
+    content = JSON.stringify([{ type: 'text', content: query }, ...user_files])
   }
-  const historyMessages: any[] = []
-  // Include prior rounds (exclude the message being sent now)
-  const priorMessages = state.messageList.slice(0, -1)
-  for (const m of priorMessages) {
-    historyMessages.push({ role: 'user', content: toUserContent(m.query, m.user_files || []) })
-    if (m.answer) {
-      historyMessages.push({ role: 'assistant', content: m.answer })
-    }
-  }
-  const currentContent = toUserContent(query, user_files)
 
   try {
     await chatApi.completions(
       {
         conversation_id,
         model: `agent-${agent_id}`,
-        messages: [...historyMessages, { content: currentContent, role: 'user' }],
+        messages: [...history, { content, role: 'user' }],
         frequency_penalty: 0,
         presence_penalty: 0,
         stream: true,
@@ -642,7 +663,7 @@ const sendMessage = async (query: string, user_files: any[]) => {
       console.log(err)
       const lastMessage = state.messageList[state.messageList.length - 1]
       if (lastMessage && !lastMessage.answer) {
-        lastMessage.answer = err.response.data || window.$t('response_code.network_error')
+        lastMessage.answer = err.response?.data || window.$t('response_code.network_error')
       }
     }
   } finally {

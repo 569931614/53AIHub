@@ -179,6 +179,11 @@ func CreateAgent(c *gin.Context) {
 	}
 	model.CreateSystemLog(&log)
 
+	// Ensure both subscription_group_ids and user_group_ids are populated
+	if err := agent.LoadGroupIdsByType(); err != nil {
+		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
+		return
+	}
 	c.JSON(http.StatusOK, model.Success.ToResponse(agent))
 }
 
@@ -212,7 +217,7 @@ func GetAgent(c *gin.Context) {
 		}
 	}
 
-	if err := agent.LoadUserGroupIds(); err != nil {
+	if err := agent.LoadGroupIdsByType(); err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
 		return
 	}
@@ -370,7 +375,7 @@ func UpdateAgent(c *gin.Context) {
 		fieldMap,
 	)
 
-	if err := agent.LoadUserGroupIds(); err != nil {
+	if err := agent.LoadGroupIdsByType(); err != nil {
 		c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
 		return
 	}
@@ -501,7 +506,7 @@ func GetAgents(c *gin.Context) {
 	}
 
 	for _, agent := range agents {
-		if err := agent.LoadUserGroupIds(); err != nil {
+		if err := agent.LoadGroupIdsByType(); err != nil {
 			c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
 			return
 		}
@@ -550,7 +555,7 @@ func GetAgentsByGroup(c *gin.Context) {
 	}
 
 	for _, agent := range agents {
-		if err := agent.LoadUserGroupIds(); err != nil {
+		if err := agent.LoadGroupIdsByType(); err != nil {
 			c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
 			return
 		}
@@ -596,7 +601,7 @@ func GetAvailableAgents(c *gin.Context) {
 	}
 
 	for _, agent := range agents {
-		if err = agent.LoadUserGroupIds(); err != nil {
+		if err = agent.LoadGroupIdsByType(); err != nil {
 			c.JSON(http.StatusInternalServerError, model.DBError.ToResponse(nil))
 			return
 		}

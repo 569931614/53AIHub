@@ -146,6 +146,37 @@ let conversation_id = 0
 let active_chat_index = -1
 let active_chat_data = {}
 let abort_controller: any = null
+
+// 获取上下文轮数（仅 Prompt 类型带上下文）
+const getHistoryPairs = (): number => {
+  try {
+    if (agentFormStore.agent_type !== AGENT_TYPES.PROMPT) return 0
+    const cfg: any = agentFormStore.form_data?.configs || {}
+    const chat = cfg.chat || {}
+    const v = Number(chat.history_pairs)
+    if (Number.isFinite(v) && v > 0) return Math.floor(v)
+  } catch (e) {}
+  return 6
+}
+
+// 从已完成的历史对话构建上下文
+const buildHistoryMessages = (maxPairs = 6) => {
+  const history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  // 仅取已完成的问答对
+  const finished = chat_list.value.filter((m: any) => m?.question && m?.answer && m.answer.loading === false)
+  const start = Math.max(0, finished.length - maxPairs)
+  for (let i = start; i < finished.length; i++) {
+    const m = finished[i]
+    const files = Array.isArray(m.question.user_files) ? m.question.user_files : []
+    const userContent = files.length
+      ? JSON.stringify([{ type: 'text', content: m.question.content }, ...files])
+      : m.question.content
+    history.push({ role: 'user', content: userContent })
+    if (m.answer?.content) history.push({ role: 'assistant', content: m.answer.content })
+  }
+  return history
+}
+
 const onSendConfirm = async (question: string, user_files?: any[], type = '') => {
   if (chat_loading.value) return
   user_files = user_files || []
@@ -193,34 +224,21 @@ const onSendConfirm = async (question: string, user_files?: any[], type = '') =>
   })
   active_chat_index = chat_list.value.length - 1
   active_chat_data = chat_list.value[active_chat_index] || {}
-  // Build multi-turn message history
-  const historyMessages: any[] = []
-  const toUserContent = (q: string, files: any[]) => {
-    if (files && files.length) {
-      return JSON.stringify([{ type: 'text', content: q }, ...(files || [])])
-    }
-    return q
-  }
-  // Include prior rounds (before the current one)
-  const prior = chat_list.value.slice(0, active_chat_index)
-  for (const item of prior) {
-    historyMessages.push({
+  // 组装历史上下文（仅 Prompt 类型生效）
+  const history = buildHistoryMessages(getHistoryPairs())
+
+  // 当前用户消息
+  let userMessage: any = { role: 'user', content: question }
+  if (user_files.length) {
+    userMessage = {
       role: 'user',
-      content: toUserContent(item.question.content, item.question.user_files || []),
-    })
-    if (item.answer && item.answer.content) {
-      historyMessages.push({
-        role: item.answer.role || 'assistant',
-        content: item.answer.content,
-      })
+      content: JSON.stringify([
+        { type: 'text', content: question },
+        ...user_files,
+      ]),
     }
   }
-  // Current user message
-  const currentUserMessage = {
-    role: 'user',
-    content: toUserContent(question, user_files),
-  }
-  const messages = [...historyMessages, currentUserMessage]
+  const messages = [...history, userMessage]
 
   conversationStore
     .chat({

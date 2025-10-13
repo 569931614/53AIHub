@@ -52,64 +52,42 @@ func UpdateAgentResourcePermissions(c *gin.Context, tx *gorm.DB, agentID int64, 
 		return err
 	}
 
-	// 确定分组ID
-	var allGroupIds []int64
+	// 统一合并两类分组ID（去重），默认不过滤企业类型（未知/空时等同于行业型）
 	groupIDSet := make(map[int64]bool)
-
-	switch enterprise.Type {
-	case model.EnterpriseTypeIndustry:
-		// 取所有分组ID
-		if len(subscriptionGroupIds) > 0 {
-			for _, id := range subscriptionGroupIds {
-				groupIDSet[id] = true
-			}
-		}
-		if len(userGroupIds) > 0 {
-			for _, id := range userGroupIds {
-				groupIDSet[id] = true
-			}
-		}
-	case model.EnterpriseTypeIndependent:
-		// 只取订阅分组ID
-		if len(subscriptionGroupIds) > 0 {
-			for _, id := range subscriptionGroupIds {
-				groupIDSet[id] = true
-			}
-		}
-	case model.EnterpriseTypeEnterprise:
-		// 只取用户分组ID
-		if len(userGroupIds) > 0 {
-			for _, id := range userGroupIds {
-				groupIDSet[id] = true
-			}
+	for _, id := range subscriptionGroupIds {
+		if id > 0 {
+			groupIDSet[id] = true
 		}
 	}
-
+	for _, id := range userGroupIds {
+		if id > 0 {
+			groupIDSet[id] = true
+		}
+	}
 	// 转换为切片
-	allGroupIds = make([]int64, 0, len(groupIDSet))
+	allGroupIds := make([]int64, 0, len(groupIDSet))
 	for id := range groupIDSet {
 		allGroupIds = append(allGroupIds, id)
 	}
-
-	// 如果不是行业类型且有分组ID，需要过滤分组
-	if enterprise.Type != model.EnterpriseTypeIndustry && len(allGroupIds) > 0 {
-		// 获取所有分组
+	// 仅当企业类型为独立站/企业内部时做类型过滤；行业型或未知类型不做过滤
+	needFilter := enterprise != nil && (enterprise.Type == model.EnterpriseTypeIndependent || enterprise.Type == model.EnterpriseTypeEnterprise)
+	if needFilter && len(allGroupIds) > 0 {
 		var groups []model.Group
-		if err := tx.Where("group_id IN (?)", allGroupIds).Find(&groups).Error; err != nil {
+		if err := tx.Where("group_id IN ?", allGroupIds).Find(&groups).Error; err != nil {
 			return err
 		}
-
-		// 过滤分组
 		filteredGroupIds := make([]int64, 0, len(groups))
 		for _, group := range groups {
-			// 根据企业类型过滤
-			if (enterprise.Type == model.EnterpriseTypeIndependent && group.GroupType != model.USER_GROUP_TYPE) ||
-				(enterprise.Type == model.EnterpriseTypeEnterprise && group.GroupType != model.INTERNAL_USER_GROUP_TYPE) {
-				continue
+			if enterprise.Type == model.EnterpriseTypeIndependent {
+				if group.GroupType == model.USER_GROUP_TYPE {
+					filteredGroupIds = append(filteredGroupIds, group.GroupId)
+				}
+			} else if enterprise.Type == model.EnterpriseTypeEnterprise {
+				if group.GroupType == model.INTERNAL_USER_GROUP_TYPE {
+					filteredGroupIds = append(filteredGroupIds, group.GroupId)
+				}
 			}
-			filteredGroupIds = append(filteredGroupIds, group.GroupId)
 		}
-
 		allGroupIds = filteredGroupIds
 	}
 

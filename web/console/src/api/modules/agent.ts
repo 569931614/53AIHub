@@ -7,6 +7,8 @@ export { AGENT_TYPE, type AgentType }
 
 interface AgentData {
   user_group_ids?: string | number[]
+  subscription_group_ids?: string | number[]
+
   tools?: string | any[]
   use_cases?: string | any[]
   configs?: string | Record<string, any>
@@ -49,6 +51,8 @@ interface SaveParams {
   prompt?: string
   sort?: number
   tools?: any[] | string
+  subscription_group_ids?: number[]
+
   use_cases?: any[] | string
   user_group_ids?: number[]
   custom_config?: Record<string, any> | string
@@ -169,13 +173,19 @@ const parseJsonField = <T>(value: string | T, defaultValue: T): T => {
 }
 
 export function getFormatAgentData(data: AgentData = {}): AgentData {
-  data.user_group_ids = parseJsonField(data.user_group_ids, [])
-  data.user_group_ids = [...new Set(data.user_group_ids)]
-  data.tools = parseJsonField(data.tools, [])
-  data.use_cases = parseJsonField(data.use_cases, [])
-  data.configs = parseJsonField(data.configs, {})
-  data.custom_config = parseJsonField(data.custom_config, {})
-  data.settings = parseJsonField(data.settings, {})
+  data.user_group_ids = parseJsonField(data.user_group_ids as any, []) as any
+  data.user_group_ids = [...new Set((data.user_group_ids as any))]
+
+  ;(data as any).subscription_group_ids = parseJsonField((data as any).subscription_group_ids, [])
+  ;(data as any).subscription_group_ids = [
+    ...new Set(((data as any).subscription_group_ids as any)),
+  ]
+
+  data.tools = parseJsonField(data.tools as any, []) as any
+  data.use_cases = parseJsonField(data.use_cases as any, []) as any
+  data.configs = parseJsonField(data.configs as any, {}) as any
+  data.custom_config = parseJsonField(data.custom_config as any, {}) as any
+  data.settings = parseJsonField(data.settings as any, {}) as any
   data.backend_agent_type = data.agent_type || BACKEND_AGENT_TYPE.AGENT
   data.agent_type = (data.custom_config as any)?.agent_type || AGENT_TYPE.PROMPT
   data.agent_type_label = `agent_app.${data.agent_type}`
@@ -213,6 +223,8 @@ export const agentApi = {
       group_id: 0,
       configs: {},
       logo: '',
+      subscription_group_ids: [],
+
       name: '',
       description: '',
       model: '',

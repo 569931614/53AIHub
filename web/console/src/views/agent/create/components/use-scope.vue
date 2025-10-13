@@ -3,7 +3,6 @@
     {{ $t('permission_setting') }}
   </div>
   <ElFormItem
-    :hidden="!(enterprise.info.is_independent || enterprise.info.is_industry)"
     :label="$t('register_user.title')"
   >
     <GroupSelect
@@ -15,7 +14,6 @@
     />
   </ElFormItem>
   <ElFormItem
-    :hidden="!(enterprise.info.is_enterprise || enterprise.info.is_industry)"
     :label="$t('internal_user.title')"
     prop="user_group_ids"
   >

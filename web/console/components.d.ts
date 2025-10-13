@@ -85,7 +85,6 @@ declare module '@vue/runtime-core' {
     OpenData: typeof import('./src/components/OpenData/index.vue')['default']
     Optimize: typeof import('./src/components/Prompt/optimize.vue')['default']
     Pagination: typeof import('./src/components/Pagination/index.vue')['default']
-    Role: typeof import('./src/components/Unit/role.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Scroller: typeof import('./src/components/Scroller/index.vue')['default']

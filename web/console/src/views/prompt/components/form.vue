@@ -101,7 +101,6 @@
       {{ $t('usage_range') }}
     </h1>
     <ElFormItem
-      :hidden="!(enterprise.info.is_independent || enterprise.info.is_industry)"
       :label="$t('register_user.title')"
       prop="subscription_group_ids"
     >
@@ -114,7 +113,6 @@
       />
     </ElFormItem>
     <ElFormItem
-      :hidden="!(enterprise.info.is_enterprise || enterprise.info.is_industry)"
       :label="$t('internal_user.title')"
       prop="user_group_ids"
     >

@@ -50,7 +50,7 @@ export const useAgentFormStore = defineStore('agent-form-store', {
       subscription_group_ids: [],
       tools: [],
       use_cases: [],
-      configs: {},
+      configs: { completion_params: DEFAULT_COMPLETION_PARAMS, chat: { history_pairs: 6 } },
       custom_config: {
         agent_type: 'prompt',
         agent_mode: 'chat',
@@ -130,7 +130,7 @@ export const useAgentFormStore = defineStore('agent-form-store', {
         sort: +this.agent_data.sort || 0,
         prompt: this.agent_data.prompt || '',
         user_group_ids: this.agent_data.user_group_ids || [],
-        subscription_group_ids: this.agent_data.user_group_ids || [],
+        subscription_group_ids: (this.agent_data as any).subscription_group_ids || [],
         tools: this.agent_data.tools || [],
         use_cases: this.agent_data.use_cases || [],
         configs:
@@ -168,6 +168,15 @@ export const useAgentFormStore = defineStore('agent-form-store', {
           ...(this.agent_data.settings || {}),
         },
       })
+      // ensure chat.history_pairs default (Prompt only, harmless for others)
+      try {
+        const cfg: any = this.form_data.configs || {}
+        if (!cfg.chat || typeof cfg.chat !== 'object') cfg.chat = {}
+        const hp = Number(cfg.chat.history_pairs)
+        cfg.chat.history_pairs = Number.isFinite(hp) && hp > 0 ? Math.floor(hp) : 6
+        this.form_data.configs = cfg
+      } catch (e) {}
+
       const custom_config = this.agent_data.custom_config || {}
       if (this.agent_type === AGENT_TYPE.PROMPT) {
         this.form_data.model =
@@ -249,7 +258,7 @@ export const useAgentFormStore = defineStore('agent-form-store', {
         subscription_group_ids: [],
         tools: [],
         use_cases: [],
-        configs: { completion_params: DEFAULT_COMPLETION_PARAMS },
+        configs: { completion_params: DEFAULT_COMPLETION_PARAMS, chat: { history_pairs: 6 } },
         custom_config: {
           agent_type: 'prompt',
           agent_mode: 'chat',
